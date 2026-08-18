@@ -5,13 +5,12 @@ import { completeRiverbank, loadGame, saveGame, setRiverState, type GameSave, ty
 import { preloadImages, preloadWhenIdle } from './game/assetPreload'
 import { loadRiverLayouts, riverIsVfx, riverLayerStyle, riverVisibleInState, type RiverLayerId, type RiverPreviewState } from './riverbankLayout'
 
-type RiverScreen = 'scene' | 'stone' | 'echo' | 'dropi' | 'restore' | 'result'
+type RiverScreen = 'scene' | 'stone' | 'echo' | 'restore' | 'result'
 
 const previewStateFor = (state: RiverState, screen: RiverScreen): RiverPreviewState => {
   if (state === 'RESTORED') return 'restored'
   if (screen === 'stone' || state === 'INVESTIGATING') return 'investigating'
-  if (screen === 'echo' || state === 'ECHO_REVEALED') return 'echo_revealed'
-  if (screen === 'dropi' || screen === 'restore' || state === 'DROPI_FOUND') return 'dropi_appears'
+  if (screen === 'echo' || screen === 'restore' || state === 'ECHO_REVEALED' || state === 'DROPI_FOUND') return 'echo_revealed'
   return 'discovered'
 }
 
@@ -29,14 +28,11 @@ export default function RiverGame() {
   const restored = save.riverbank.state === 'RESTORED'
 
   useEffect(() => {
-    preloadImages([riverbank.background, riverbank.layers.dam, riverbank.layers.waterSlow], 'high')
+    preloadImages([riverbank.background, riverbank.layers.dam, riverbank.layers.streambed], 'high')
     preloadWhenIdle([
-      riverbank.layers.water,
-      riverbank.layers.streambed,
+      riverbank.layers.waterSlow,
       riverbank.layers.echoStone,
       riverbank.layers.echo,
-      riverbank.echoes.dropi,
-      riverbank.echoes.dropiRipple,
     ])
   }, [])
 
@@ -56,11 +52,6 @@ export default function RiverGame() {
     setScreen('echo')
   }
 
-  const revealDropi = () => {
-    persistState('DROPI_FOUND')
-    setScreen('dropi')
-  }
-
   const restoreRiver = () => {
     const next = completeRiverbank(save)
     saveGame(next)
@@ -71,7 +62,7 @@ export default function RiverGame() {
   const back = () => { window.location.href = import.meta.env.BASE_URL }
 
   const layers = useMemo<SceneLayer[]>(() => {
-    const ids: RiverLayerId[] = ['dam', 'waterSlow', 'water', 'streambed', 'echoStone', 'echo', 'dropi', 'dropiRipple']
+    const ids: RiverLayerId[] = ['dam', 'waterSlow', 'streambed', 'echoStone', 'echo']
     return ids
       .filter(id => layouts[id].visible && riverVisibleInState(id, previewState))
       .map(id => ({
@@ -88,14 +79,12 @@ export default function RiverGame() {
     : []
 
   const subtitle = restored
-    ? 'Die Strömung zieht wieder durch das Flussbett.'
+    ? 'Eine ruhige Strömung zieht wieder durch das Flussbett.'
     : save.riverbank.state === 'BLOCKED'
       ? riverbank.subtitle
       : save.riverbank.state === 'INVESTIGATING'
-        ? 'Zwischen dem nassen Geröll liegt etwas, das nicht zum Fluss gehört.'
-        : save.riverbank.state === 'ECHO_REVEALED'
-          ? 'Der Stein trägt eine Erinnerung an eine ältere Strömung.'
-          : 'Dropi lauscht dem Wasser unter dem Treibholz.'
+        ? 'Zwischen dem freiliegenden Geröll liegt etwas, das nicht zum Fluss gehört.'
+        : 'Der Stein trägt eine Erinnerung an eine ältere Strömung.'
 
   return <main className="game-shell"><section className="location-screen screen">
     <LocationScene
@@ -109,18 +98,16 @@ export default function RiverGame() {
       onBack={back}
     />
 
-    {screen === 'scene' && !restored && <div className="story-card"><span className="story-handle"/><p>Das Wasser steht beinahe still. Treibholz hält die Strömung fest, und am Rand des Flussbetts schimmert etwas zwischen den Steinen.</p><p className="instruction">Untersuche einen leuchtenden Punkt.</p></div>}
+    {screen === 'scene' && !restored && <div className="story-card"><span className="story-handle"/><p>Das Flussbett liegt zwischen Treibholz und nassen Steinen beinahe frei. Die Blockade hält das Wasser zurück, und am Rand schimmert etwas im Geröll.</p><p className="instruction">Untersuche einen leuchtenden Punkt.</p></div>}
 
-    {screen === 'scene' && restored && <div className="story-card persistent-card"><span className="story-handle"/><p className="eyebrow">Gespeicherter Weltzustand</p><p>Der Fluss zieht wieder durch das alte Bett. Wo zuvor das Wasser stand, bleiben nasse Steine und ein beinahe vergessenes Zeichen zurück.</p><div className="persistent-actions"><button className="secondary-button" onClick={back}>Zur Weltkarte</button></div></div>}
+    {screen === 'scene' && restored && <div className="story-card persistent-card"><span className="story-handle"/><p className="eyebrow">Gespeicherter Weltzustand</p><p>Die Blockade ist fort. Eine ruhige Strömung zieht wieder durch den alten Lauf, während das Spiralzeichen am Ufer sichtbar bleibt.</p><div className="persistent-actions"><button className="secondary-button" onClick={back}>Zur Weltkarte</button></div></div>}
 
-    {screen === 'stone' && <div className="bottom-sheet"><span className="sheet-handle"/><p className="eyebrow">Etwas wurde sichtbar</p><h3>Ein Zeichen liegt unter dem Wasser.</h3><p>Der Stein ist glatt geschliffen. In seiner Oberfläche liegt eine Spirale, so flach, dass sie fast verschwunden wäre.</p><div className="result-actions"><button className="primary-button" onClick={revealEcho}>Den Stein berühren</button><button className="secondary-button" onClick={() => setScreen('scene')}>Zurück</button></div></div>}
+    {screen === 'stone' && <div className="bottom-sheet"><span className="sheet-handle"/><p className="eyebrow">Etwas wurde sichtbar</p><h3>Ein Zeichen liegt zwischen den Steinen.</h3><p>Der Stein ist glatt geschliffen. In seiner Oberfläche liegt eine Spirale, so flach, dass sie fast verschwunden wäre.</p><div className="result-actions"><button className="primary-button" onClick={revealEcho}>Den Stein berühren</button><button className="secondary-button" onClick={() => setScreen('scene')}>Zurück</button></div></div>}
 
-    {screen === 'echo' && <div className="bottom-sheet consequence-sheet"><span className="sheet-handle"/><p className="eyebrow">Echo</p><h3>Für einen Moment erinnert sich das Wasser.</h3><p>Keine Stimme. Kein Bild. Nur eine Strömung, die hier einmal einen anderen Weg genommen hat.</p><button className="echo-card" onClick={revealDropi}><img src={riverbank.echoes.dropi} alt="Dropi" decoding="async"/><span><strong>Dropi</strong><small>Wasser · Strömung · verborgene Wege</small></span><b>→</b></button><p className="context-note">Zwischen den nassen Steinen öffnen sich zwei kleine bernsteinfarbene Augen.</p></div>}
+    {screen === 'echo' && <div className="bottom-sheet consequence-sheet"><span className="sheet-handle"/><p className="eyebrow">Echo</p><h3>Für einen Moment erinnert sich das Wasser.</h3><p>Keine Stimme. Kein Bild. Nur die Spur einer Strömung, die hier einmal durch das Flussbett gezogen ist.</p><div className="result-actions"><button className="primary-button" onClick={() => setScreen('restore')}>Der alten Strömung folgen</button><button className="secondary-button" onClick={() => setScreen('stone')}>Zurück</button></div></div>}
 
-    {screen === 'dropi' && <div className="bottom-sheet consequence-sheet"><span className="sheet-handle"/><div className="echo-reaction"><img src={riverbank.echoes.dropi} alt="Dropi" decoding="async"/><div><p className="eyebrow">Dropi reagiert</p><h3>Der Fluss will weiter.</h3></div></div><p>Dropi folgt einer schwachen Bewegung unter dem Treibholz. Die Blockade hält nicht nur Wasser zurück – sie verdeckt auch den alten Lauf des Flusses.</p><div className="choice-grid"><button onClick={() => setScreen('restore')}><strong>Der Strömung folgen</strong><small>Dropi sucht den Weg, an dem das Wasser noch zieht.</small></button></div></div>}
+    {screen === 'restore' && <div className="bottom-sheet consequence-sheet"><span className="sheet-handle"/><p className="eyebrow">Flussufer</p><h3>Zwischen den Ästen ist Bewegung.</h3><p>Das Echo zeigt, wo der alte Lauf unter dem Treibholz weiterführt. Ein Ast löst sich, dann ein zweiter. Dahinter findet das Wasser wieder Platz.</p><div className="result-actions"><button className="primary-button" onClick={restoreRiver}>Die Blockade lösen</button><button className="secondary-button" onClick={() => setScreen('echo')}>Noch warten</button></div></div>}
 
-    {screen === 'restore' && <div className="bottom-sheet consequence-sheet"><span className="sheet-handle"/><p className="eyebrow">Flussufer</p><h3>Zwischen den Ästen ist Bewegung.</h3><p>Ein Ast löst sich, dann ein zweiter. Das Wasser drängt nicht – es findet nur wieder Platz.</p><div className="result-actions"><button className="primary-button" onClick={restoreRiver}>Die Blockade lösen</button><button className="secondary-button" onClick={() => setScreen('dropi')}>Noch warten</button></div></div>}
-
-    {screen === 'result' && <div className="bottom-sheet result-sheet"><span className="sheet-handle"/><p className="eyebrow">Die Welt hat sich verändert</p><h3>Der Fluss bewegt sich wieder.</h3><div className="journal-note"><span>Tagebuch · gespeichert</span><p>Dropi folgte der schwachen Strömung unter dem Treibholz. Als die Blockade nachgab, begann der Fluss wieder zu ziehen. Zwischen nassen Steinen blieb ein altes Spiralzeichen zurück.</p></div><div className="result-actions"><button className="primary-button" onClick={() => setScreen('scene')}>Ort ansehen</button><button className="secondary-button" onClick={back}>Zur Weltkarte</button></div></div>}
+    {screen === 'result' && <div className="bottom-sheet result-sheet"><span className="sheet-handle"/><p className="eyebrow">Die Welt hat sich verändert</p><h3>Der Fluss bewegt sich wieder.</h3><div className="journal-note"><span>Tagebuch · gespeichert</span><p>Das alte Spiralzeichen zeigte die Spur einer vergessenen Strömung. Als das Treibholz nachgab, fand das Wasser zurück in seinen alten Lauf.</p></div><div className="result-actions"><button className="primary-button" onClick={() => setScreen('scene')}>Ort ansehen</button><button className="secondary-button" onClick={back}>Zur Weltkarte</button></div></div>}
   </section></main>
 }
