@@ -1,8 +1,19 @@
 import { useRef, useState } from 'react'
 import { oldMill } from './content/oldMill'
-import { completeOldMill, createNewGame, loadGame, saveGame, type GameSave, type MillChoice } from './game/saveGame'
+import {
+  accelerateOldMillFollowUp,
+  completeOldMill,
+  createNewGame,
+  isOldMillFollowUpReady,
+  loadGame,
+  resolveOldMillFollowUp,
+  saveGame,
+  timeUntilOldMillFollowUp,
+  type GameSave,
+  type MillChoice,
+} from './game/saveGame'
 
-type Screen = 'map' | 'mill' | 'echo' | 'choice' | 'result' | 'journal'
+type Screen = 'map' | 'mill' | 'echo' | 'choice' | 'result' | 'journal' | 'followup'
 type HotspotId = (typeof oldMill.hotspots)[number]['id']
 type LayerId = keyof typeof oldMill.layers
 type LayerLayout = {
@@ -45,6 +56,13 @@ function loadZoom() {
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 const angleBetween = (a: PointerEvent | React.PointerEvent, b: PointerEvent | React.PointerEvent) => Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX) * 180 / Math.PI
 const distanceBetween = (a: PointerEvent | React.PointerEvent, b: PointerEvent | React.PointerEvent) => Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY)
+const formatWait = (milliseconds: number | null) => {
+  if (milliseconds === null || milliseconds <= 0) return 'jetzt'
+  const hours = Math.ceil(milliseconds / (60 * 60 * 1000))
+  if (hours < 24) return `in etwa ${hours} Std.`
+  const days = Math.ceil(hours / 24)
+  return `in etwa ${days} ${days === 1 ? 'Tag' : 'Tagen'}`
+}
 
 export default function App() {
   const editorMode = new URLSearchParams(window.location.search).get('editor') === '1'
@@ -64,33 +82,55 @@ export default function App() {
   const persistedChoice = save.oldMill.choice
   const activeChoice = sessionChoice ?? persistedChoice
   const millChanged = save.oldMill.state !== 'ABANDONED' || sessionChoice !== null
-  const millStatus = save.oldMill.state === 'REPAIRED' ? 'das Rad läuft wieder' : save.oldMill.state === 'DISCOVERED' ? 'ein geschützter Ort' : 'etwas wartet hier'
+  const followUpReady = isOldMillFollowUpReady(save)
+  const followUpPending = Boolean(save.oldMill.choice && save.oldMill.followUpDueAt && !save.oldMill.followUpSeenAt)
+  const followUpSeen = Boolean(save.oldMill.followUpSeenAt)
+  const followUpWait = timeUntilOldMillFollowUp(save)
+  const millStatus = followUpReady
+    ? 'etwas Neues ist geschehen'
+    : followUpSeen
+      ? 'der Ort lebt weiter'
+      : save.oldMill.state === 'REPAIRED'
+        ? 'das Rad läuft wieder'
+        : save.oldMill.state === 'DISCOVERED'
+          ? 'ein geschützter Ort'
+          : 'etwas wartet hier'
   const journalText = activeChoice === 'preserve'
     ? 'Lumen fand Wärme im alten Gemäuer. Wir ließen das Nest unberührt und öffneten nur den Weg zum Rad.'
     : 'Lumen zeigte uns den verborgenen Mechanismus. Wir schnitten die Ranken zurück und brachten das Rad wieder in Bewegung.'
+  const followUpText = save.oldMill.choice === 'preserve'
+    ? 'Zwischen den alten Balken liegen neue Halme und eine kleine Feder. Das Nest ist nicht länger nur geschützt – es wird benutzt.'
+    : 'Das Rad läuft gleichmäßig. Im flacheren Wasser am Ufer haben sich erste frische Pflanzen gesammelt.'
+  const followUpJournal = save.oldMill.choice === 'preserve'
+    ? 'Als wir zur Alten Mühle zurückkehrten, lag das Nest noch sicher zwischen den Balken. Neue Halme und Federn zeigten, dass der geschützte Ort angenommen worden war.'
+    : 'Bei unserer Rückkehr lief das Rad ruhig weiter. Am Ufer hatten sich frische Wasserpflanzen gesammelt – die Bewegung des Bachs hatte den Ort bereits verändert.'
 
   const commitChoice = (choice: MillChoice) => {
     const next = completeOldMill(save, choice)
-    saveGame(next)
-    setSave(next)
-    setSessionChoice(choice)
-    setScreen('result')
+    saveGame(next); setSave(next); setSessionChoice(choice); setScreen('result')
   }
   const resetGame = () => {
     const next = createNewGame()
-    saveGame(next)
-    setSave(next)
-    setSessionChoice(null)
-    setHotspot('window')
-    setScreen('map')
+    saveGame(next); setSave(next); setSessionChoice(null); setHotspot('window'); setScreen('map')
+  }
+  const testFollowUpNow = () => {
+    const next = accelerateOldMillFollowUp(save)
+    saveGame(next); setSave(next)
+  }
+  const openFollowUp = () => {
+    if (!isOldMillFollowUpReady(save)) return
+    setScreen('followup')
+  }
+  const rememberFollowUp = () => {
+    const next = resolveOldMillFollowUp(save)
+    saveGame(next); setSave(next); setScreen('journal')
   }
 
   const persistLayout = (next: Layouts) => localStorage.setItem('echo-old-mill-layout-v2', JSON.stringify(next))
   const updateLayer = (id: LayerId, patch: Partial<LayerLayout>, addHistory = false) => setLayouts(current => {
     if (addHistory) setHistory(items => [...items.slice(-29), current])
     const next = { ...current, [id]: { ...current[id], ...patch } }
-    persistLayout(next)
-    return next
+    persistLayout(next); return next
   })
   const layerStyle = (id: LayerId) => {
     const value = layouts[id]
@@ -100,15 +140,11 @@ export default function App() {
       transform: `perspective(${value.perspective}px) rotateX(${value.rotateX}deg) rotateY(${value.rotateY}deg) rotateZ(${value.rotation}deg) skew(${value.skewX}deg, ${value.skewY}deg) scale(${value.scaleX}, ${value.scaleY})`,
     }
   }
-  const copyLayout = async () => {
-    await navigator.clipboard.writeText(JSON.stringify(layouts, null, 2))
-    setCopied(true); window.setTimeout(() => setCopied(false), 1400)
-  }
+  const copyLayout = async () => { await navigator.clipboard.writeText(JSON.stringify(layouts, null, 2)); setCopied(true); window.setTimeout(() => setCopied(false), 1400) }
   const undo = () => setHistory(items => {
     if (!items.length) return items
     const previous = items[items.length - 1]
-    setLayouts(previous); persistLayout(previous)
-    return items.slice(0, -1)
+    setLayouts(previous); persistLayout(previous); return items.slice(0, -1)
   })
   const resetSelected = () => updateLayer(selectedLayer, defaultLayouts[selectedLayer], true)
   const setNumeric = (key: NumericKey, raw: string) => {
@@ -118,11 +154,7 @@ export default function App() {
     updateLayer(selectedLayer, { [key]: bounded }, true)
   }
   const stepFor = (key: NumericKey) => key === 'opacity' ? .05 : key === 'rotation' || key === 'skewX' || key === 'skewY' || key === 'rotateX' || key === 'rotateY' ? 1 : key === 'scaleX' || key === 'scaleY' ? .05 : key === 'perspective' ? 50 : .5
-  const changeZoom = (value: number) => {
-    const next = clamp(value, 100, 300)
-    setSceneZoom(next)
-    localStorage.setItem('echo-scene-editor-zoom', String(next))
-  }
+  const changeZoom = (value: number) => { const next = clamp(value, 100, 300); setSceneZoom(next); localStorage.setItem('echo-scene-editor-zoom', String(next)) }
   const pointerDown = (event: React.PointerEvent<HTMLImageElement>, id: LayerId) => {
     event.preventDefault(); setSelectedLayer(id); event.currentTarget.setPointerCapture(event.pointerId); pointers.current.set(event.pointerId, event)
     const origin = layouts[id]
@@ -164,17 +196,18 @@ export default function App() {
 
   if (screen === 'journal') return <main className="game-shell"><section className="journal-screen screen"><header className="journal-header"><button className="icon-button" onClick={() => setScreen('map')}>←</button><div><p className="eyebrow">Tagebuch</p><h1>Erinnerungen</h1></div></header>{save.journal.length ? <div className="journal-list">{save.journal.map(entry => <article className="journal-entry" key={entry.id}><p className="eyebrow">{entry.title}</p><p>{entry.body}</p></article>)}</div> : <p className="journal-empty">Noch wurde keine Erinnerung festgehalten.</p>}</section></main>
 
-  if (screen === 'map') return <main className="game-shell"><section className="map-screen screen"><header className="map-header"><p className="eyebrow">ECHO · Weltkarte</p><div className="map-title-row"><h1>Die Welt erinnert sich.</h1><span className="resource-pill">✦ 3</span></div><p className="map-intro">Nur wenige Orte antworten noch. Einer davon ruft nach dir.</p><button className="journal-button" onClick={() => setScreen('journal')}>Tagebuch <span>{save.journal.length}</span></button></header><div className="map-stage"><div className="map-haze map-haze-a"/><div className="map-haze map-haze-b"/><div className="river"/><button className="location-node village-node" disabled><span className="node-dot muted"/><span className="location-label"><strong>Dorf am Fluss</strong><small>später</small></span></button><button className="location-node mill-node active" onClick={() => { setSessionChoice(null); setScreen('mill') }}><span className="node-dot"/><span className="location-label"><strong>Alte Mühle</strong><small>{millStatus}</small></span></button><button className="location-node forest-node" disabled><span className="node-dot muted"/><span className="location-label"><strong>Vergessener Wald</strong><small>unentdeckt</small></span></button></div><div className="map-footer"><span className="map-footer-line"/><p>{save.oldMill.state === 'ABANDONED' ? 'Tippe auf die Alte Mühle.' : 'Deine Entscheidung bleibt in der Welt bestehen.'}</p></div></section></main>
+  if (screen === 'map') return <main className="game-shell"><section className="map-screen screen"><header className="map-header"><p className="eyebrow">ECHO · Weltkarte</p><div className="map-title-row"><h1>Die Welt erinnert sich.</h1><span className="resource-pill">✦ 3</span></div><p className="map-intro">Nur wenige Orte antworten noch. Einer davon ruft nach dir.</p><button className="journal-button" onClick={() => setScreen('journal')}>Tagebuch <span>{save.journal.length}</span></button></header><div className="map-stage"><div className="map-haze map-haze-a"/><div className="map-haze map-haze-b"/><div className="river"/><button className="location-node village-node" disabled><span className="node-dot muted"/><span className="location-label"><strong>Dorf am Fluss</strong><small>später</small></span></button><button className={`location-node mill-node active ${followUpReady ? 'followup-ready' : ''}`} onClick={() => { setSessionChoice(null); setScreen('mill') }}><span className="node-dot"/><span className="location-label"><strong>Alte Mühle</strong><small>{millStatus}</small></span></button><button className="location-node forest-node" disabled><span className="node-dot muted"/><span className="location-label"><strong>Vergessener Wald</strong><small>unentdeckt</small></span></button></div><div className="map-footer"><span className="map-footer-line"/><p>{followUpReady ? 'An der Alten Mühle hat sich erneut etwas verändert.' : save.oldMill.state === 'ABANDONED' ? 'Tippe auf die Alte Mühle.' : 'Deine Entscheidung bleibt in der Welt bestehen.'}</p></div></section></main>
 
-  return <main className="game-shell"><section className="location-screen screen"><div className={`mill-scene ${millChanged ? 'changed' : ''}`}><img className="scene-background" src={oldMill.background} alt="Verlassene alte Wassermühle"/><div className="scene-shade"/><header className="location-header"><button className="icon-button" onClick={() => setScreen('map')}>←</button><div><p className="eyebrow">{save.oldMill.state === 'ABANDONED' ? 'Ort entdeckt' : 'Ort erinnert sich'}</p><h2>{oldMill.name}</h2><p>{save.oldMill.state === 'ABANDONED' ? oldMill.subtitle : millStatus}</p></div></header>
+  return <main className="game-shell"><section className="location-screen screen"><div className={`mill-scene ${millChanged ? 'changed' : ''}`}><img className="scene-background" src={oldMill.background} alt="Verlassene alte Wassermühle"/><div className="scene-shade"/><header className="location-header"><button className="icon-button" onClick={() => setScreen('map')}>←</button><div><p className="eyebrow">{followUpReady ? 'Der Ort ruft erneut' : save.oldMill.state === 'ABANDONED' ? 'Ort entdeckt' : 'Ort erinnert sich'}</p><h2>{oldMill.name}</h2><p>{save.oldMill.state === 'ABANDONED' ? oldMill.subtitle : millStatus}</p></div></header>
   {activeChoice === 'repair' && <><img className="scene-sprite" style={layerStyle('waterwheel')} src={oldMill.layers.waterwheel} alt=""/><img className="scene-vfx" style={layerStyle('splash')} src={oldMill.layers.splash} alt=""/><img className="scene-vfx" style={layerStyle('ripples')} src={oldMill.layers.ripples} alt=""/><img className="scene-sprite" style={layerStyle('vines')} src={oldMill.layers.vines} alt=""/></>}
   {activeChoice && <><img className="scene-sprite" style={layerStyle('window')} src={oldMill.layers.window} alt=""/><img className="scene-vfx window-vfx" style={layerStyle('glow')} src={oldMill.layers.glow} alt=""/><img className="scene-vfx motes-vfx" style={layerStyle('motes')} src={oldMill.layers.motes} alt=""/></>}
   {activeChoice === 'preserve' && <img className="scene-sprite" style={layerStyle('nest')} src={oldMill.layers.nest} alt=""/>}
   {screen === 'mill' && save.oldMill.state === 'ABANDONED' && oldMill.hotspots.map(item => <button key={item.id} className="hotspot" style={{left:`${item.x}%`,top:`${item.y}%`}} onClick={() => { setHotspot(item.id); setScreen('echo') }}><span className="hotspot-core"/><span className="hotspot-ring"/></button>)}</div>
   {screen === 'mill' && save.oldMill.state === 'ABANDONED' && <div className="story-card"><span className="story-handle"/><p>Das Rad steht still. Im oberen Fenster liegt nur Dunkelheit. Zwischen den Balken raschelt etwas.</p><p className="instruction">Untersuche einen leuchtenden Punkt.</p></div>}
-  {screen === 'mill' && save.oldMill.state !== 'ABANDONED' && <div className="story-card persistent-card"><span className="story-handle"/><p className="eyebrow">Gespeicherter Weltzustand</p><p>{save.oldMill.state === 'REPAIRED' ? 'Das Rad arbeitet wieder. Wasser und Licht sind an die Alte Mühle zurückgekehrt.' : 'Das Nest bleibt geschützt. Lumen erinnert sich an das Licht zwischen den Balken.'}</p><div className="persistent-actions"><button className="secondary-button" onClick={() => setScreen('journal')}>Tagebuch</button><button className="secondary-button" onClick={resetGame}>Spielstand zurücksetzen</button></div></div>}
+  {screen === 'mill' && save.oldMill.state !== 'ABANDONED' && <div className={`story-card persistent-card ${followUpReady ? 'followup-card' : ''}`}><span className="story-handle"/><p className="eyebrow">{followUpReady ? 'Neue Spur' : followUpSeen ? 'Der Ort lebt weiter' : 'Gespeicherter Weltzustand'}</p><p>{followUpReady ? 'Seit deinem letzten Besuch ist etwas Neues entstanden. Die Veränderung war nicht das Ende.' : followUpSeen ? followUpText : save.oldMill.state === 'REPAIRED' ? 'Das Rad arbeitet wieder. Wasser und Licht sind an die Alte Mühle zurückgekehrt.' : 'Das Nest bleibt geschützt. Lumen erinnert sich an das Licht zwischen den Balken.'}</p>{followUpReady && <button className="primary-button followup-button" onClick={openFollowUp}>Nachsehen</button>}{followUpPending && !followUpReady && <div className="followup-timer"><span>Die Welt arbeitet weiter</span><strong>{formatWait(followUpWait)}</strong></div>}<div className="persistent-actions"><button className="secondary-button" onClick={() => setScreen('journal')}>Tagebuch</button>{followUpPending && !followUpReady ? <button className="secondary-button test-time-button" onClick={testFollowUpNow}>Test: Zeit vorspulen</button> : <button className="secondary-button" onClick={resetGame}>Spielstand zurücksetzen</button>}</div></div>}
   {screen === 'echo' && <div className="bottom-sheet"><span className="sheet-handle"/><p className="eyebrow">Echo wählen</p><h3>Wer soll sich das ansehen?</h3><button className="echo-card" onClick={() => setScreen('choice')}><img src={oldMill.lumen} alt="Lumen"/><span><strong>Lumen</strong><small>Licht · verborgenes sichtbar machen</small></span><b>→</b></button><p className="context-note">Lumen schaut neugierig zum {hotspot === 'window' ? 'dunklen Fenster' : hotspot === 'wheel' ? 'alten Rad' : 'dichten Bewuchs'}.</p></div>}
   {screen === 'choice' && <div className="bottom-sheet consequence-sheet"><span className="sheet-handle"/><div className="echo-reaction"><img src={oldMill.lumen} alt="Lumen"/><div><p className="eyebrow">Lumen reagiert</p><h3>Im Holz verlaufen alte Spuren von Licht.</h3></div></div><p>Lumen macht einen verborgenen Mechanismus sichtbar. Hinter den Ranken liegt zugleich ein kleines Nest.</p><div className="choice-grid"><button onClick={() => commitChoice('preserve')}><strong>Das Nest schützen</strong><small>Nur vorsichtig Platz schaffen.</small></button><button onClick={() => commitChoice('repair')}><strong>Das Rad reparieren</strong><small>Ranken zurückschneiden und den Mechanismus öffnen.</small></button></div></div>}
-  {screen === 'result' && <div className="bottom-sheet result-sheet"><span className="sheet-handle"/><p className="eyebrow">Die Welt hat sich verändert</p><h3>{activeChoice === 'repair' ? 'Wasser läuft wieder durch das alte Rad.' : 'Zwischen den alten Balken bleibt ein geschützter Ort.'}</h3><div className="journal-note"><span>Tagebuch · gespeichert</span><p>{journalText}</p></div><div className="result-actions"><button className="primary-button" onClick={() => setScreen('mill')}>Ort ansehen</button><button className="secondary-button" onClick={() => setScreen('map')}>Zur Weltkarte</button></div></div>}
+  {screen === 'result' && <div className="bottom-sheet result-sheet"><span className="sheet-handle"/><p className="eyebrow">Die Welt hat sich verändert</p><h3>{activeChoice === 'repair' ? 'Wasser läuft wieder durch das alte Rad.' : 'Zwischen den alten Balken bleibt ein geschützter Ort.'}</h3><div className="journal-note"><span>Tagebuch · gespeichert</span><p>{journalText}</p></div><p className="followup-hint">Diese Veränderung kann später weitere Folgen haben.</p><div className="result-actions"><button className="primary-button" onClick={() => setScreen('mill')}>Ort ansehen</button><button className="secondary-button" onClick={() => setScreen('map')}>Zur Weltkarte</button></div></div>}
+  {screen === 'followup' && <div className="bottom-sheet followup-sheet"><span className="sheet-handle"/><p className="eyebrow">Rückkehr · Alte Mühle</p><h3>{save.oldMill.choice === 'preserve' ? 'Jemand hat den geschützten Ort gefunden.' : 'Das Wasser trägt die Veränderung weiter.'}</h3><p>{followUpText}</p><div className="journal-note"><span>Neue Erinnerung</span><p>{followUpJournal}</p></div><div className="result-actions"><button className="primary-button" onClick={rememberFollowUp}>Im Tagebuch festhalten</button><button className="secondary-button" onClick={() => setScreen('mill')}>Später</button></div></div>}
   </section></main>
 }
