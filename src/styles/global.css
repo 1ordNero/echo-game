@@ -1,0 +1,89 @@
+:root {
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #eee9dc;
+  background: #17201e;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.phase-zero-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top, rgba(213, 183, 119, 0.16), transparent 38%),
+    linear-gradient(180deg, #24302d 0%, #17201e 100%);
+}
+
+.phase-zero-card {
+  width: min(680px, 100%);
+  padding: clamp(28px, 6vw, 56px);
+  border: 1px solid rgba(238, 233, 220, 0.18);
+  border-radius: 24px;
+  background: rgba(18, 26, 24, 0.78);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.3);
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  font-family: system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #c8a765;
+}
+
+h1 {
+  margin: 0 0 20px;
+  font-size: clamp(2.5rem, 9vw, 5.5rem);
+  font-weight: 500;
+  line-height: 0.95;
+}
+
+p {
+  line-height: 1.65;
+}
+
+dl {
+  margin: 32px 0 0;
+  display: grid;
+  gap: 12px;
+  font-family: system-ui, sans-serif;
+}
+
+dl div {
+  padding-top: 12px;
+  border-top: 1px solid rgba(238, 233, 220, 0.12);
+}
+
+dt {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #aeb9b2;
+}
+
+dd {
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
