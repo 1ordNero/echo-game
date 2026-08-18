@@ -7,6 +7,7 @@ import ForestGame from './ForestGame'
 import './styles/global.css'
 import './styles/editor.css'
 import './styles/phase2.css'
+import './styles/location-ui.css'
 import './styles/beta-menu.css'
 
 const OFFICIAL_MILL_LAYOUT_VERSION = '2026-08-18-v3'
