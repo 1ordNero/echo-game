@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.3.0-beta.6'
+export const APP_VERSION = '0.3.0-beta.7'
 
 export type ChangelogEntry = {
   version: string
@@ -8,6 +8,18 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.3.0-beta.7',
+    date: '2026-08-18',
+    title: 'Shared location runtime',
+    changes: [
+      'Alte Mühle auf denselben LocationScene-Renderer wie der Vergessene Wald migriert.',
+      'Mühlen-Sprite-Layer und Hotspots werden jetzt über ein gemeinsames Scene-Model erzeugt.',
+      'Scene Editor der Alten Mühle aus der App herausgelöst und als eigener Editor implementiert.',
+      'Mühlen-Layout und Layout-Migration zentralisiert, damit Spiel und Editor dieselbe Quelle verwenden.',
+      'Vergessener Wald auf der Weltkarte wieder direkt erreichbar.',
+    ],
+  },
   {
     version: '0.3.0-beta.6',
     date: '2026-08-18',
@@ -63,7 +75,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Vergessener Wald & UI-Pass',
     changes: [
       'Vergessener Wald als zweite spielbare Location ergänzt.',
-      'Gemeinsamer Scene Editor für Mühle und Wald.',
+      'Gemeinsamer Scene Editor für Alte Mühle und Vergessenen Wald.',
       'Persistente Weltzustände und Tagebuch für beide Orte.',
       'Kompaktere gemeinsame Location-UI mit stärkerem Fokus auf die Szenengrafik.',
       'Zentrales Beta-Menü für Testfunktionen und Editor-Zugang.',
