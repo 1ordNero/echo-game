@@ -4,6 +4,9 @@ import App from './App'
 import BetaMenu from './BetaMenu'
 import EditorHub from './EditorHub'
 import ForestGame from './ForestGame'
+import { oldMill } from './content/oldMill'
+import { forgottenForest } from './content/forgottenForest'
+import { preloadImages, preloadWhenIdle } from './game/assetPreload'
 import './styles/global.css'
 import './styles/editor.css'
 import './styles/phase2.css'
@@ -30,6 +33,20 @@ if (localStorage.getItem('echo-old-mill-layout-version') !== OFFICIAL_MILL_LAYOU
 const params = new URLSearchParams(window.location.search)
 const editor = params.get('editor') === '1'
 const forestGame = params.get('forest') === '1'
+
+// Make navigation feel immediate on mobile: backgrounds first, optional sprites during idle time.
+if (!editor) {
+  preloadImages(forestGame
+    ? [forgottenForest.background, forgottenForest.echoes.mossi]
+    : [oldMill.background, forgottenForest.background], 'high')
+  preloadWhenIdle([
+    oldMill.lumen,
+    ...Object.values(oldMill.layers),
+    forgottenForest.echoes.mossi,
+    ...Object.values(forgottenForest.layers),
+  ])
+}
+
 const Root = editor ? EditorHub : forestGame ? ForestGame : App
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
