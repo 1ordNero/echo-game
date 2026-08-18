@@ -2,6 +2,7 @@ export type MillChoice = 'preserve' | 'repair'
 export type MillState = 'ABANDONED' | 'DISCOVERED' | 'REPAIRED'
 export type ForestChoice = 'awaken-roots' | 'reveal-stones'
 export type ForestState = 'STILL' | 'AWAKENING' | 'CHANGED'
+export type RiverState = 'BLOCKED' | 'INVESTIGATING' | 'ECHO_REVEALED' | 'DROPI_FOUND' | 'RESTORED'
 
 export type JournalEntry = {
   id: string
@@ -11,7 +12,7 @@ export type JournalEntry = {
 }
 
 export type GameSave = {
-  version: 3
+  version: 4
   oldMill: {
     state: MillState
     choice: MillChoice | null
@@ -28,6 +29,12 @@ export type GameSave = {
     mossiVisited: boolean
     completedAt: number | null
   }
+  riverbank: {
+    state: RiverState
+    tags: string[]
+    dropiVisited: boolean
+    completedAt: number | null
+  }
   journal: JournalEntry[]
 }
 
@@ -35,7 +42,7 @@ const SAVE_KEY = 'echo-save-v1'
 const DAY = 24 * 60 * 60 * 1000
 
 export const createNewGame = (): GameSave => ({
-  version: 3,
+  version: 4,
   oldMill: {
     state: 'ABANDONED',
     choice: null,
@@ -52,6 +59,12 @@ export const createNewGame = (): GameSave => ({
     mossiVisited: false,
     completedAt: null,
   },
+  riverbank: {
+    state: 'BLOCKED',
+    tags: [],
+    dropiVisited: false,
+    completedAt: null,
+  },
   journal: [],
 })
 
@@ -63,6 +76,7 @@ export function loadGame(): GameSave {
     const fresh = createNewGame()
     const oldMill = { ...fresh.oldMill, ...(parsed.oldMill ?? {}) }
     const forgottenForest = { ...fresh.forgottenForest, ...(parsed.forgottenForest ?? {}) }
+    const riverbank = { ...fresh.riverbank, ...(parsed.riverbank ?? {}) }
 
     if (oldMill.completedAt && !oldMill.followUpDueAt && !oldMill.followUpSeenAt) {
       oldMill.followUpDueAt = oldMill.completedAt + (oldMill.choice === 'repair' ? 2 * DAY : DAY)
@@ -71,9 +85,10 @@ export function loadGame(): GameSave {
     return {
       ...fresh,
       ...parsed,
-      version: 3,
+      version: 4,
       oldMill,
       forgottenForest,
+      riverbank,
       journal: Array.isArray(parsed.journal) ? parsed.journal : [],
     }
   } catch {
@@ -98,7 +113,7 @@ export function completeOldMill(save: GameSave, choice: MillChoice): GameSave {
 
   return {
     ...save,
-    version: 3,
+    version: 4,
     oldMill: {
       state: choice === 'repair' ? 'REPAIRED' : 'DISCOVERED',
       choice,
@@ -125,12 +140,37 @@ export function completeForgottenForest(save: GameSave, choice: ForestChoice): G
 
   return {
     ...save,
-    version: 3,
+    version: 4,
     forgottenForest: {
       state: roots ? 'AWAKENING' : 'CHANGED',
       choice,
       tags: roots ? ['roots_awake', 'mossi_used'] : ['memory_stones_revealed', 'mossi_used'],
       mossiVisited: true,
+      completedAt: now,
+    },
+    journal,
+  }
+}
+
+export function setRiverState(save: GameSave, state: RiverState): GameSave {
+  return { ...save, version: 4, riverbank: { ...save.riverbank, state, dropiVisited: save.riverbank.dropiVisited || state === 'DROPI_FOUND' || state === 'RESTORED' } }
+}
+
+export function completeRiverbank(save: GameSave): GameSave {
+  const now = Date.now()
+  const body = 'Dropi folgte der schwachen Strömung unter dem Treibholz. Als die Blockade nachgab, begann der Fluss wieder zu ziehen. Zwischen nassen Steinen blieb ein altes Spiralzeichen zurück.'
+  const entryId = 'riverbank-restored'
+  const journal = save.journal.some(entry => entry.id === entryId)
+    ? save.journal
+    : [{ id: entryId, title: 'Flussufer', body, createdAt: now }, ...save.journal]
+
+  return {
+    ...save,
+    version: 4,
+    riverbank: {
+      state: 'RESTORED',
+      tags: ['river_restored', 'memory_stone_revealed', 'dropi_used'],
+      dropiVisited: true,
       completedAt: now,
     },
     journal,
