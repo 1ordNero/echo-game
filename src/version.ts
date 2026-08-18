@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.3.0-beta.8'
+export const APP_VERSION = '0.3.0-beta.9'
 
 export type ChangelogEntry = {
   version: string
@@ -8,6 +8,18 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.3.0-beta.9',
+    date: '2026-08-18',
+    title: 'Flussufer Zustandslogik korrigiert',
+    changes: [
+      'Blockierter Ausgangszustand zeigt nur Treibholz-Barriere und freiliegendes Flussbett.',
+      'Nach dem Freilegen wird die ruhige Strömung eingeblendet; die Barriere verschwindet.',
+      'Memory-Stone- und Echo-Sequenz bleiben erhalten.',
+      'Dropi-Sequenz aus dem spielbaren Flussufer-Ablauf entfernt.',
+      'Tagebuchtext und gespeicherte Riverbank-Tags an den vereinfachten Ablauf angepasst.',
+    ],
+  },
   {
     version: '0.3.0-beta.8',
     date: '2026-08-18',
