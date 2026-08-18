@@ -4,6 +4,7 @@ import App from './App'
 import BetaMenu from './BetaMenu'
 import EditorHub from './EditorHub'
 import ForestGame from './ForestGame'
+import RiverGame from './RiverGame'
 import { locationList, locations } from './content/locationRegistry'
 import { preloadImages, preloadWhenIdle } from './game/assetPreload'
 import './styles/global.css'
@@ -15,10 +16,11 @@ import './styles/beta-menu.css'
 const params = new URLSearchParams(window.location.search)
 const editor = params.get('editor') === '1'
 const forestGame = params.get('forest') === '1'
+const riverGame = params.get('river') === '1'
 
 // Location registry owns loading policy so adding a new place does not require editing the bootstrap code.
 if (!editor) {
-  const activeLocation = forestGame ? locations['forgotten-forest'] : locations['old-mill']
+  const activeLocation = riverGame ? locations.riverbank : forestGame ? locations['forgotten-forest'] : locations['old-mill']
   const otherBackgrounds = locationList
     .filter(location => location.id !== activeLocation.id)
     .map(location => location.background)
@@ -33,7 +35,7 @@ if (!editor) {
   ])
 }
 
-const Root = editor ? EditorHub : forestGame ? ForestGame : App
+const Root = editor ? EditorHub : riverGame ? RiverGame : forestGame ? ForestGame : App
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
