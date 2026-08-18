@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.3.0-beta.2'
+export const APP_VERSION = '0.3.0-beta.3'
 
 export type ChangelogEntry = {
   version: string
@@ -9,13 +9,20 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.3.0-beta.3',
+    date: '2026-08-18',
+    title: 'Forest alignment fix',
+    changes: [
+      'Location canvas uses a deterministic 3:2 coordinate system independent of image layout.',
+      'Forest sprites and background now share the same coordinate reference as the Scene Editor.',
+    ],
+  },
+  {
     version: '0.3.0-beta.2',
     date: '2026-08-18',
     title: 'Sprite-Ausrichtung korrigiert',
     changes: [
-      'Location-Szenen wieder auf das native 3:2-Koordinatensystem des Scene Editors gesetzt.',
-      'Sprite- und Hotspot-Positionen stimmen dadurch wieder mit den gespeicherten Editor-Werten überein.',
-      'Kompakte Header-UI bleibt erhalten.',
+      '3:2-Szenenkoordinaten im Spiel wiederhergestellt, damit Editor-Positionen nicht verrutschen.',
     ],
   },
   {
