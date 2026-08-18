@@ -1,0 +1,80 @@
+.forest-scene{margin-top:0!important}
+
+/* Shared location hero: the scene is primary, UI stays compact. */
+.location-screen .mill-scene{
+  height:clamp(360px,46svh,560px);
+  aspect-ratio:auto;
+}
+.location-screen .scene-background{object-fit:cover;object-position:center center}
+.location-screen .scene-shade{
+  background:linear-gradient(180deg,rgba(4,8,6,.72) 0%,rgba(4,8,6,.38) 17%,rgba(4,8,6,.08) 34%,transparent 53%,rgba(4,8,6,.1) 100%);
+}
+.location-header{
+  gap:10px;
+  padding:12px 14px 54px;
+  background:linear-gradient(180deg,rgba(7,12,10,.42),rgba(7,12,10,.14) 60%,transparent);
+}
+.location-header .icon-button{
+  width:36px;
+  height:36px;
+  margin-top:1px;
+  font-size:1rem;
+}
+.location-header .eyebrow{
+  margin-bottom:4px;
+  font-size:.58rem;
+  letter-spacing:.16em;
+}
+.location-header h2{
+  max-width:14ch;
+  font-size:clamp(1.55rem,6.2vw,2.2rem);
+  line-height:.96;
+  text-wrap:balance;
+}
+.location-header p:last-child{
+  display:-webkit-box;
+  max-width:29ch;
+  margin-top:6px;
+  overflow:hidden;
+  font-size:.68rem;
+  line-height:1.35;
+  opacity:.74;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+}
+
+/* Bottom sheets overlap the artwork only slightly and use less vertical space. */
+.story-card,.bottom-sheet{
+  margin:-14px 10px 0;
+  padding:16px 18px 20px;
+}
+.story-handle,.sheet-handle{margin-bottom:12px}
+.story-card p{font-size:.88rem;line-height:1.48}
+.instruction{margin-top:8px!important;font-size:.72rem!important}
+.persistent-card{padding-bottom:18px}
+.persistent-card>.eyebrow{margin-bottom:8px}
+.persistent-card>p:not(.eyebrow){font-size:.9rem;line-height:1.48}
+.persistent-actions{grid-template-columns:1fr!important;gap:8px!important;margin-top:14px!important}
+.persistent-actions>:nth-child(n+2){display:none!important}
+.persistent-actions .secondary-button{min-height:44px}
+
+/* Results may be richer than the passive state, but should still leave the scene visible. */
+.result-sheet h3{margin-bottom:10px;font-size:1.2rem;line-height:1.15}
+.result-sheet .journal-note{margin-top:12px;padding:12px 14px}
+.result-sheet .journal-note p{font-size:.88rem;line-height:1.42}
+.result-sheet .result-actions{margin-top:13px}
+.result-sheet .primary-button,.result-sheet .secondary-button{min-height:44px}
+
+/* Keep interactive markers visually below the compact location identity block. */
+.location-screen .hotspot{transform:translateZ(0)}
+
+@media(max-width:390px){
+  .location-screen .mill-scene{height:clamp(345px,45svh,500px)}
+  .location-header{padding-left:12px;padding-right:12px}
+  .location-header h2{font-size:1.55rem}
+  .location-header p:last-child{font-size:.65rem}
+}
+
+@media(min-width:760px){
+  .location-screen .mill-scene{height:min(52vh,620px)}
+}
