@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { forgottenForest } from './content/forgottenForest'
-import { defaultForestLayouts, forestIsVfx, forestLayerIds, forestLayerStyle, loadForestLayouts, type ForestLayerId, type ForestLayouts, type LayerLayout } from './forestLayout'
+import { defaultForestLayouts, forestIsVfx, forestLayerIds, forestLayerStyle, loadForestLayouts, saveForestLayouts, type ForestLayerId, type ForestLayouts, type LayerLayout } from './forestLayout'
 
 const basicKeys = ['x', 'y', 'width', 'rotation', 'opacity'] as const
 const advancedKeys = ['scaleX', 'scaleY', 'skewX', 'skewY', 'rotateX', 'rotateY', 'perspective'] as const
@@ -17,7 +17,7 @@ export default function ForestEditor() {
   const pointers = useRef(new Map<number, React.PointerEvent<HTMLImageElement>>())
   const gesture = useRef<{ id: ForestLayerId; x: number; y: number; width: number; rotation: number; startX: number; startY: number; distance?: number; angle?: number } | null>(null)
 
-  const persist = (next: ForestLayouts) => localStorage.setItem('echo-forgotten-forest-layout-v1', JSON.stringify(next))
+  const persist = (next: ForestLayouts) => saveForestLayouts(next)
   const update = (id: ForestLayerId, patch: Partial<LayerLayout>, remember = false) => setLayouts(current => {
     if (remember) setHistory(items => [...items.slice(-29), current])
     const next = { ...current, [id]: { ...current[id], ...patch } }
