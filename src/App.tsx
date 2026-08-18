@@ -48,6 +48,14 @@ export default function App() {
           ? 'ein geschützter Ort'
           : 'etwas wartet hier'
 
+  const riverStatus = save.riverbank.state === 'RESTORED'
+    ? 'der Fluss bewegt sich wieder'
+    : save.riverbank.state === 'DROPI_FOUND'
+      ? 'Dropi lauscht der Strömung'
+      : save.riverbank.state === 'ECHO_REVEALED'
+        ? 'eine Erinnerung liegt im Wasser'
+        : 'die Strömung ist blockiert'
+
   const journalText = activeChoice === 'preserve'
     ? 'Lumen fand Wärme im alten Gemäuer. Wir ließen das Nest unberührt und öffneten nur den Weg zum Rad.'
     : 'Lumen zeigte uns den verborgenen Mechanismus. Wir schnitten die Ranken zurück und brachten das Rad wieder in Bewegung.'
@@ -67,10 +75,11 @@ export default function App() {
     saveGame(next); setSave(next); setScreen('journal')
   }
   const openForest = () => { window.location.href = `${import.meta.env.BASE_URL}?forest=1` }
+  const openRiver = () => { window.location.href = `${import.meta.env.BASE_URL}?river=1` }
 
   if (screen === 'journal') return <main className="game-shell"><section className="journal-screen screen"><header className="journal-header"><button className="icon-button" onClick={() => setScreen('map')}>←</button><div><p className="eyebrow">Tagebuch</p><h1>Erinnerungen</h1></div></header>{save.journal.length ? <div className="journal-list">{save.journal.map(entry => <article className="journal-entry" key={entry.id}><p className="eyebrow">{entry.title}</p><p>{entry.body}</p></article>)}</div> : <p className="journal-empty">Noch wurde keine Erinnerung festgehalten.</p>}</section></main>
 
-  if (screen === 'map') return <main className="game-shell"><section className="map-screen screen"><header className="map-header"><p className="eyebrow">ECHO · Weltkarte</p><div className="map-title-row"><h1>Die Welt erinnert sich.</h1><span className="resource-pill">✦ 3</span></div><p className="map-intro">Nur wenige Orte antworten noch. Zwei davon sind bereits erreichbar.</p><button className="journal-button" onClick={() => setScreen('journal')}>Tagebuch <span>{save.journal.length}</span></button></header><div className="map-stage"><div className="map-haze map-haze-a"/><div className="map-haze map-haze-b"/><div className="river"/><button className="location-node village-node" disabled><span className="node-dot muted"/><span className="location-label"><strong>Dorf am Fluss</strong><small>später</small></span></button><button className={`location-node mill-node active ${followUpReady ? 'followup-ready' : ''}`} onClick={() => { setSessionChoice(null); setScreen('mill') }}><span className="node-dot"/><span className="location-label"><strong>Alte Mühle</strong><small>{millStatus}</small></span></button><button className="location-node forest-node active" onClick={openForest}><span className="node-dot"/><span className="location-label"><strong>Vergessener Wald</strong><small>{save.forgottenForest.state === 'STILL' ? 'etwas wartet zwischen den Stämmen' : 'der Wald erinnert sich'}</small></span></button></div><div className="map-footer"><span className="map-footer-line"/><p>{followUpReady ? 'An der Alten Mühle hat sich erneut etwas verändert.' : 'Deine Entscheidungen bleiben in der Welt bestehen.'}</p></div></section></main>
+  if (screen === 'map') return <main className="game-shell"><section className="map-screen screen"><header className="map-header"><p className="eyebrow">ECHO · Weltkarte</p><div className="map-title-row"><h1>Die Welt erinnert sich.</h1><span className="resource-pill">✦ 3</span></div><p className="map-intro">Nur wenige Orte antworten noch. Drei davon sind bereits erreichbar.</p><button className="journal-button" onClick={() => setScreen('journal')}>Tagebuch <span>{save.journal.length}</span></button></header><div className="map-stage"><div className="map-haze map-haze-a"/><div className="map-haze map-haze-b"/><div className="river"/><button className="location-node village-node" disabled><span className="node-dot muted"/><span className="location-label"><strong>Dorf am Fluss</strong><small>später</small></span></button><button className={`location-node mill-node active ${followUpReady ? 'followup-ready' : ''}`} onClick={() => { setSessionChoice(null); setScreen('mill') }}><span className="node-dot"/><span className="location-label"><strong>Alte Mühle</strong><small>{millStatus}</small></span></button><button className="location-node forest-node active" onClick={openForest}><span className="node-dot"/><span className="location-label"><strong>Vergessener Wald</strong><small>{save.forgottenForest.state === 'STILL' ? 'etwas wartet zwischen den Stämmen' : 'der Wald erinnert sich'}</small></span></button><button className="location-node riverbank-node active" onClick={openRiver}><span className="node-dot"/><span className="location-label"><strong>Flussufer</strong><small>{riverStatus}</small></span></button></div><div className="map-footer"><span className="map-footer-line"/><p>{followUpReady ? 'An der Alten Mühle hat sich erneut etwas verändert.' : 'Deine Entscheidungen bleiben in der Welt bestehen.'}</p></div></section></main>
 
   const sceneLayers = buildOldMillLayers(layouts, activeChoice)
   const sceneHotspots = screen === 'mill' && save.oldMill.state === 'ABANDONED'
