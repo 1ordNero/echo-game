@@ -1,8 +1,11 @@
 .forest-scene{margin-top:0!important}
 .beta-menu{position:fixed;right:10px;top:max(10px,env(safe-area-inset-top));z-index:1000;font-family:system-ui,sans-serif}
 .beta-menu-trigger{width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.16);background:rgba(10,16,13,.72);color:#d8c79e;font-size:.9rem;letter-spacing:.08em;backdrop-filter:blur(10px);box-shadow:0 5px 18px rgba(0,0,0,.24)}
-.beta-menu-panel{position:absolute;right:0;top:42px;width:190px;padding:10px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(15,23,19,.97);box-shadow:0 16px 42px rgba(0,0,0,.42);backdrop-filter:blur(12px)}
-.beta-menu-label{margin:2px 4px 8px;color:#d5b46d;font-size:.62rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+.beta-menu-panel{position:absolute;right:0;top:42px;width:min(300px,calc(100vw - 20px));max-height:min(70vh,620px);overflow:auto;padding:10px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(15,23,19,.97);box-shadow:0 16px 42px rgba(0,0,0,.42);backdrop-filter:blur(12px)}
+.beta-menu-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin:2px 2px 8px 4px}.beta-menu-heading>div{display:grid;gap:2px}.beta-menu-heading span{font-size:.62rem;color:rgba(238,231,216,.55)}
+.beta-menu-label{margin:0;color:#d5b46d;font-size:.62rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
 .beta-menu-panel button{display:block;width:100%;margin:5px 0;padding:9px 10px;text-align:left;border:1px solid rgba(255,255,255,.1);border-radius:9px;background:rgba(255,255,255,.035);color:#eee7d8;font-size:.72rem}
 .beta-menu-panel button.danger{color:#e5b8ae;border-color:rgba(207,117,96,.25)}
+.beta-menu-panel .beta-close{width:30px;height:30px;margin:-3px -2px 0 0;padding:0;text-align:center;border:0;background:transparent;font-size:1.25rem;color:rgba(238,231,216,.65)}
+.beta-changelog .beta-back{margin-bottom:10px;border:0;background:transparent;padding-left:3px;color:#d5b46d}.beta-changelog article{padding:10px 4px 12px;border-top:1px solid rgba(255,255,255,.08)}.beta-changelog article>div{display:flex;justify-content:space-between;gap:10px;align-items:baseline}.beta-changelog article strong{font-size:.7rem;color:#e7c97f}.beta-changelog article span{font-size:.58rem;color:rgba(238,231,216,.45)}.beta-changelog h3{margin:5px 0 7px;font-family:Georgia,serif;font-size:.9rem;font-weight:500;color:#f0eadc}.beta-changelog ul{margin:0;padding-left:17px}.beta-changelog li{margin:4px 0;font-size:.65rem;line-height:1.35;color:rgba(238,231,216,.72)}
 @media(min-width:760px){.beta-menu{right:18px;top:18px}}
