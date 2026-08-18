@@ -1,11 +1,13 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import BetaMenu from './BetaMenu'
 import EditorHub from './EditorHub'
 import ForestGame from './ForestGame'
 import './styles/global.css'
 import './styles/editor.css'
 import './styles/phase2.css'
+import './styles/beta-menu.css'
 
 const OFFICIAL_MILL_LAYOUT_VERSION = '2026-08-18-v3'
 const officialMillLayout = {
@@ -32,5 +34,6 @@ const Root = editor ? EditorHub : forestGame ? ForestGame : App
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Root />
+    {!editor && <BetaMenu />}
   </React.StrictMode>,
 )
