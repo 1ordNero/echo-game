@@ -39,32 +39,34 @@ export default function LocationScene({
   onBack,
   children,
 }: LocationSceneProps) {
-  return <div className={`mill-scene ${changed ? 'changed' : ''}`}>
-    <img className="scene-background" src={background} alt={name} decoding="async" fetchPriority="high" />
-    <div className="scene-shade" />
-    <header className="location-header">
-      <button className="icon-button" onClick={onBack} aria-label="Zurück">←</button>
-      <div>
-        <p className="eyebrow">{eyebrow}</p>
-        <h2>{name}</h2>
-        <p>{subtitle}</p>
-      </div>
-    </header>
-    {layers.map(layer => <img
-      key={layer.id}
-      className={layer.className ?? 'scene-sprite'}
-      style={{ ...layer.style, mixBlendMode: layer.blendMode }}
-      src={layer.src}
-      alt=""
-      decoding="async"
-    />)}
-    {hotspots.map(hotspot => <button
-      key={hotspot.id}
-      className="hotspot"
-      style={{ left: `${hotspot.x}%`, top: `${hotspot.y}%` }}
-      onClick={hotspot.onClick}
-      aria-label={hotspot.label ?? 'Untersuchen'}
-    ><span className="hotspot-core"/><span className="hotspot-ring"/></button>)}
-    {children}
-  </div>
+  return <>
+    <div className={`mill-scene ${changed ? 'changed' : ''}`}>
+      <img className="scene-background" src={background} alt={name} decoding="async" fetchPriority="high" />
+      <div className="scene-shade" />
+      <header className="location-header">
+        <button className="icon-button" onClick={onBack} aria-label="Zurück">←</button>
+        <div>
+          <p className="eyebrow">{eyebrow}</p>
+          <h2>{name}</h2>
+          <p>{subtitle}</p>
+        </div>
+      </header>
+      {layers.map(layer => <img
+        key={layer.id}
+        className={layer.className ?? 'scene-sprite'}
+        style={{ ...layer.style, mixBlendMode: layer.blendMode }}
+        src={layer.src}
+        alt=""
+        decoding="async"
+      />)}
+      {hotspots.map(hotspot => <button
+        key={hotspot.id}
+        className="hotspot"
+        style={{ left: `${hotspot.x}%`, top: `${hotspot.y}%` }}
+        onClick={hotspot.onClick}
+        aria-label={hotspot.label ?? 'Untersuchen'}
+      ><span className="hotspot-core"/><span className="hotspot-ring"/></button>)}
+      {children}
+    </div>
+  </>
 }
