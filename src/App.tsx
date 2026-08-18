@@ -36,7 +36,6 @@ const defaultLayouts: Layouts = {
 const layerIds = Object.keys(oldMill.layers) as LayerId[]
 const basicKeys = ['x', 'y', 'width', 'rotation', 'opacity'] as const
 const advancedKeys = ['scaleX', 'scaleY', 'skewX', 'skewY', 'rotateX', 'rotateY', 'perspective'] as const
-
 type NumericKey = typeof basicKeys[number] | typeof advancedKeys[number]
 
 function normalizeLayouts(raw?: Partial<Record<LayerId, Partial<LayerLayout>>>): Layouts {
@@ -50,6 +49,11 @@ function loadLayouts(): Layouts {
   } catch {
     return defaultLayouts
   }
+}
+
+function loadZoom() {
+  const saved = Number(localStorage.getItem('echo-scene-editor-zoom'))
+  return Number.isFinite(saved) && saved >= 100 && saved <= 300 ? saved : 100
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
@@ -66,6 +70,7 @@ export default function App() {
   const [copied, setCopied] = useState(false)
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [history, setHistory] = useState<Layouts[]>([])
+  const [sceneZoom, setSceneZoom] = useState(loadZoom)
   const pointers = useRef(new Map<number, PointerEvent | React.PointerEvent>())
   const gesture = useRef<{ id: LayerId; x: number; y: number; width: number; rotation: number; startX: number; startY: number; distance?: number; angle?: number } | null>(null)
 
@@ -106,12 +111,17 @@ export default function App() {
   })
   const resetSelected = () => updateLayer(selectedLayer, defaultLayouts[selectedLayer], true)
   const setNumeric = (key: NumericKey, raw: string) => {
-    const value = Number(raw)
+    const value = Number(raw.replace(',', '.'))
     if (!Number.isFinite(value)) return
     const bounded = key === 'opacity' ? clamp(value, 0, 1) : key === 'scaleX' || key === 'scaleY' ? clamp(value, .1, 4) : key === 'perspective' ? clamp(value, 100, 3000) : value
     updateLayer(selectedLayer, { [key]: bounded }, true)
   }
   const stepFor = (key: NumericKey) => key === 'opacity' ? .05 : key === 'rotation' || key === 'skewX' || key === 'skewY' || key === 'rotateX' || key === 'rotateY' ? 1 : key === 'scaleX' || key === 'scaleY' ? .05 : key === 'perspective' ? 50 : .5
+  const changeZoom = (value: number) => {
+    const next = clamp(value, 100, 300)
+    setSceneZoom(next)
+    localStorage.setItem('echo-scene-editor-zoom', String(next))
+  }
 
   const pointerDown = (event: React.PointerEvent<HTMLImageElement>, id: LayerId) => {
     event.preventDefault()
@@ -166,22 +176,34 @@ export default function App() {
     const renderControl = (key: NumericKey) => {
       const step = stepFor(key)
       const decimals = key === 'opacity' || key === 'scaleX' || key === 'scaleY' ? 2 : 1
-      return <div className="editor-control" key={key}><span>{key}</span><button onClick={() => updateLayer(selectedLayer, { [key]: active[key] - step }, true)}>−</button><input type="number" inputMode="decimal" step={step} value={Number(active[key].toFixed(decimals))} onChange={e => setNumeric(key, e.target.value)} /><button onClick={() => updateLayer(selectedLayer, { [key]: active[key] + step }, true)}>+</button></div>
+      return <div className="editor-control" key={key}><span>{key}</span><button aria-label={`${key} verkleinern`} onClick={() => updateLayer(selectedLayer, { [key]: active[key] - step }, true)}>−</button><input aria-label={key} type="text" inputMode="decimal" value={Number(active[key].toFixed(decimals))} onChange={e => setNumeric(key, e.target.value)} /><button aria-label={`${key} vergrößern`} onClick={() => updateLayer(selectedLayer, { [key]: active[key] + step }, true)}>+</button></div>
     }
     return (
       <main className="editor-shell">
-        <section className="editor-scene" aria-label="Alte Mühle Sprite Editor">
-          <img className="scene-background" src={oldMill.background} alt="Alte Mühle" />
-          {layerIds.map(id => <img key={id} src={oldMill.layers[id]} alt={id} className={`editor-layer ${selectedLayer === id ? 'selected' : ''} ${!layouts[id].visible ? 'hidden-layer' : ''}`} style={layerStyle(id)} onPointerDown={e => pointerDown(e, id)} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} />)}
-        </section>
+        <div className="editor-preview">
+          <div className="zoom-bar">
+            <span>Ansicht</span>
+            <button onClick={() => changeZoom(sceneZoom - 25)} disabled={sceneZoom <= 100}>−</button>
+            <output>{sceneZoom}%</output>
+            <button onClick={() => changeZoom(sceneZoom + 25)} disabled={sceneZoom >= 300}>+</button>
+            <button className="zoom-fit" onClick={() => changeZoom(100)}>Einpassen</button>
+          </div>
+          <div className="editor-viewport">
+            <section className="editor-scene" style={{ width: `${sceneZoom}%` }} aria-label="Alte Mühle Sprite Editor">
+              <img className="scene-background" src={oldMill.background} alt="Alte Mühle" />
+              {layerIds.map(id => <img key={id} src={oldMill.layers[id]} alt={id} className={`editor-layer ${selectedLayer === id ? 'selected' : ''} ${!layouts[id].visible ? 'hidden-layer' : ''}`} style={layerStyle(id)} onPointerDown={e => pointerDown(e, id)} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} />)}
+            </section>
+          </div>
+        </div>
         <section className="editor-panel">
           <div className="editor-title"><div><p className="eyebrow">Scene Editor V2</p><h1>Alte Mühle</h1></div><button onClick={copyLayout}>{copied ? 'Kopiert' : 'Layout kopieren'}</button></div>
-          <div className="editor-toolbar"><button onClick={undo} disabled={!history.length}>↶ Undo</button><button onClick={resetSelected}>Layer zurücksetzen</button><button className={active.visible ? 'active' : ''} onClick={() => updateLayer(selectedLayer, { visible: !active.visible }, true)}>{active.visible ? 'Sichtbar' : 'Ausgeblendet'}</button></div>
+          <div className="editor-toolbar"><button onClick={undo} disabled={!history.length}>↶ Undo</button><button onClick={resetSelected}>Zurücksetzen</button><button className={active.visible ? 'active' : ''} onClick={() => updateLayer(selectedLayer, { visible: !active.visible }, true)}>{active.visible ? 'Sichtbar' : 'Ausgeblendet'}</button></div>
           <div className="layer-tabs">{layerIds.map(id => <button key={id} className={id === selectedLayer ? 'active' : ''} onClick={() => setSelectedLayer(id)}>{id}</button>)}</div>
+          <div className="editor-section-label">Position & Größe</div>
           <div className="editor-controls">{basicKeys.map(renderControl)}</div>
-          <button className="advanced-toggle" onClick={() => setAdvancedOpen(open => !open)}>{advancedOpen ? 'Erweiterte Transformationen schließen' : 'Erweiterte Transformationen'}</button>
+          <button className="advanced-toggle" onClick={() => setAdvancedOpen(open => !open)}><span>Perspektive & Neigung</span><span>{advancedOpen ? '▴' : '▾'}</span></button>
           {advancedOpen && <div className="editor-controls advanced-controls">{advancedKeys.map(renderControl)}</div>}
-          <p className="editor-help"><strong>Touch:</strong> 1 Finger verschiebt. 2 Finger skalieren und drehen. Alle Werte können direkt eingegeben werden. Scale X/Y streckt, Skew X/Y neigt und Rotate X/Y kippt das Sprite perspektivisch.</p>
+          <p className="editor-help"><strong>Präzise platzieren:</strong> Zoome die Szene oben auf bis zu 300 %. In der vergrößerten Ansicht kannst du horizontal und vertikal scrollen. 1 Finger verschiebt ein Sprite, 2 Finger skalieren und drehen.</p>
         </section>
       </main>
     )
