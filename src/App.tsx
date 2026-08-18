@@ -35,50 +35,66 @@ export default function App() {
     <main className="game-shell">
       {screen === 'map' && (
         <section className="map-screen screen">
-          <header className="topbar">
-            <div>
-              <p className="eyebrow">ECHO · Weltkarte</p>
+          <header className="map-header">
+            <p className="eyebrow">ECHO · Weltkarte</p>
+            <div className="map-title-row">
               <h1>Die Welt erinnert sich.</h1>
+              <span className="resource-pill">✦ 3</span>
             </div>
-            <span className="resource-pill">✦ 3</span>
+            <p className="map-intro">Nur wenige Orte antworten noch. Einer davon ruft nach dir.</p>
           </header>
 
           <div className="map-stage" aria-label="Weltkarte">
+            <div className="map-haze map-haze-a" />
+            <div className="map-haze map-haze-b" />
             <div className="river" />
+
             <button className="location-node village-node" type="button" disabled>
               <span className="node-dot muted" />
-              <strong>Dorf am Fluss</strong>
-              <small>später</small>
+              <span className="location-label">
+                <strong>Dorf am Fluss</strong>
+                <small>später</small>
+              </span>
             </button>
+
             <button className="location-node mill-node active" type="button" onClick={() => setScreen('mill')}>
               <span className="node-dot" />
-              <strong>Alte Mühle</strong>
-              <small>etwas hat sich verändert</small>
+              <span className="location-label">
+                <strong>Alte Mühle</strong>
+                <small>etwas hat sich verändert</small>
+              </span>
             </button>
+
             <button className="location-node forest-node" type="button" disabled>
               <span className="node-dot muted" />
-              <strong>Vergessener Wald</strong>
-              <small>unentdeckt</small>
+              <span className="location-label">
+                <strong>Vergessener Wald</strong>
+                <small>unentdeckt</small>
+              </span>
             </button>
           </div>
 
-          <p className="map-hint">Tippe auf die Alte Mühle.</p>
+          <div className="map-footer">
+            <span className="map-footer-line" />
+            <p>Tippe auf die Alte Mühle.</p>
+          </div>
         </section>
       )}
 
       {screen !== 'map' && (
         <section className="location-screen screen">
-          <header className="location-header">
-            <button className="icon-button" type="button" onClick={() => setScreen('map')} aria-label="Zur Weltkarte">←</button>
-            <div>
-              <p className="eyebrow">Ort entdeckt</p>
-              <h2>{oldMill.name}</h2>
-              <p>{oldMill.subtitle}</p>
-            </div>
-          </header>
-
           <div className={`mill-scene ${choice ? 'changed' : ''}`}>
             <img className="scene-background" src={oldMill.background} alt="Verlassene alte Wassermühle" />
+            <div className="scene-shade" />
+
+            <header className="location-header">
+              <button className="icon-button" type="button" onClick={() => setScreen('map')} aria-label="Zur Weltkarte">←</button>
+              <div>
+                <p className="eyebrow">Ort entdeckt</p>
+                <h2>{oldMill.name}</h2>
+                <p>{oldMill.subtitle}</p>
+              </div>
+            </header>
 
             {choice === 'repair' && (
               <>
@@ -108,13 +124,15 @@ export default function App() {
                 onClick={() => inspectHotspot(item.id)}
                 aria-label={item.label}
               >
-                <span />
+                <span className="hotspot-core" />
+                <span className="hotspot-ring" />
               </button>
             ))}
           </div>
 
           {screen === 'mill' && !choice && (
             <div className="story-card">
+              <span className="story-handle" />
               <p>Das Rad steht still. Im oberen Fenster liegt nur Dunkelheit. Zwischen den Balken raschelt etwas.</p>
               <p className="instruction">Untersuche einen leuchtenden Punkt.</p>
             </div>
@@ -122,6 +140,7 @@ export default function App() {
 
           {screen === 'echo' && (
             <div className="bottom-sheet">
+              <span className="sheet-handle" />
               <p className="eyebrow">Echo wählen</p>
               <h3>Wer soll sich das ansehen?</h3>
               <button className="echo-card" type="button" onClick={() => setScreen('choice')}>
@@ -138,6 +157,7 @@ export default function App() {
 
           {screen === 'choice' && (
             <div className="bottom-sheet consequence-sheet">
+              <span className="sheet-handle" />
               <div className="echo-reaction">
                 <img src={oldMill.lumen} alt="Lumen" />
                 <div>
@@ -161,6 +181,7 @@ export default function App() {
 
           {screen === 'result' && (
             <div className="bottom-sheet result-sheet">
+              <span className="sheet-handle" />
               <p className="eyebrow">Die Welt hat sich verändert</p>
               <h3>{choice === 'repair' ? 'Wasser läuft wieder durch das alte Rad.' : 'Zwischen den alten Balken bleibt ein geschützter Ort.'}</h3>
               <div className="journal-note">
