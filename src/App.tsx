@@ -1,33 +1,60 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { oldMill } from './content/oldMill'
 
 type Screen = 'map' | 'mill' | 'echo' | 'choice' | 'result'
 type HotspotId = (typeof oldMill.hotspots)[number]['id']
 type LayerId = keyof typeof oldMill.layers
-type LayerLayout = { x: number; y: number; width: number; rotation: number; opacity: number }
+type LayerLayout = {
+  x: number
+  y: number
+  width: number
+  rotation: number
+  opacity: number
+  scaleX: number
+  scaleY: number
+  skewX: number
+  skewY: number
+  rotateX: number
+  rotateY: number
+  perspective: number
+  visible: boolean
+}
 type Layouts = Record<LayerId, LayerLayout>
 
+const baseTransform = { scaleX: 1, scaleY: 1, skewX: 0, skewY: 0, rotateX: 0, rotateY: 0, perspective: 800, visible: true }
 const defaultLayouts: Layouts = {
-  waterwheel: { x: 30, y: 28, width: 32, rotation: 0, opacity: 1 },
-  window: { x: 58, y: 19, width: 15, rotation: 0, opacity: 1 },
-  vines: { x: 68, y: 36, width: 29, rotation: 0, opacity: 1 },
-  nest: { x: 75, y: 24, width: 9, rotation: 0, opacity: 1 },
-  glow: { x: 55, y: 15, width: 22, rotation: 0, opacity: .68 },
-  splash: { x: 33, y: 56, width: 18, rotation: 0, opacity: .78 },
-  ripples: { x: 19, y: 72, width: 34, rotation: 0, opacity: .52 },
-  motes: { x: 48, y: 7, width: 43, rotation: 0, opacity: .65 },
+  waterwheel: { x: 33.0859375, y: 37.27149073282877, width: 31.5, rotation: 0, opacity: 1, ...baseTransform },
+  window: { x: 53, y: 21, width: 9.5, rotation: 0, opacity: 1, ...baseTransform },
+  vines: { x: 27.66796875, y: 54.38427734375, width: 14, rotation: 90, opacity: 1, ...baseTransform },
+  nest: { x: 69.9462890625, y: 39.3376448949178, width: 7, rotation: 11, opacity: 1, ...baseTransform },
+  glow: { x: 49.43359375, y: 18.094482421875, width: 13, rotation: 180, opacity: .88, ...baseTransform },
+  splash: { x: 49.0400390625, y: 62.109619140625, width: 17, rotation: 0, opacity: .78, ...baseTransform },
+  ripples: { x: 46.4658203125, y: 67.001220703125, width: 22.5, rotation: -8, opacity: .62, ...baseTransform },
+  motes: { x: 28.2734375, y: 35.8818375269572, width: 43, rotation: 0, opacity: .65, ...baseTransform },
 }
 
 const layerIds = Object.keys(oldMill.layers) as LayerId[]
+const basicKeys = ['x', 'y', 'width', 'rotation', 'opacity'] as const
+const advancedKeys = ['scaleX', 'scaleY', 'skewX', 'skewY', 'rotateX', 'rotateY', 'perspective'] as const
+
+type NumericKey = typeof basicKeys[number] | typeof advancedKeys[number]
+
+function normalizeLayouts(raw?: Partial<Record<LayerId, Partial<LayerLayout>>>): Layouts {
+  return Object.fromEntries(layerIds.map(id => [id, { ...defaultLayouts[id], ...(raw?.[id] ?? {}) }])) as Layouts
+}
 
 function loadLayouts(): Layouts {
   try {
-    const saved = localStorage.getItem('echo-old-mill-layout')
-    return saved ? { ...defaultLayouts, ...JSON.parse(saved) } : defaultLayouts
+    const saved = localStorage.getItem('echo-old-mill-layout-v2') || localStorage.getItem('echo-old-mill-layout')
+    return saved ? normalizeLayouts(JSON.parse(saved)) : defaultLayouts
   } catch {
     return defaultLayouts
   }
 }
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+const angleBetween = (a: PointerEvent | React.PointerEvent, b: PointerEvent | React.PointerEvent) => Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX) * 180 / Math.PI
+const distanceBetween = (a: PointerEvent | React.PointerEvent, b: PointerEvent | React.PointerEvent) => Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY)
 
 export default function App() {
   const editorMode = new URLSearchParams(window.location.search).get('editor') === '1'
@@ -37,6 +64,10 @@ export default function App() {
   const [layouts, setLayouts] = useState<Layouts>(loadLayouts)
   const [selectedLayer, setSelectedLayer] = useState<LayerId>('waterwheel')
   const [copied, setCopied] = useState(false)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [history, setHistory] = useState<Layouts[]>([])
+  const pointers = useRef(new Map<number, PointerEvent | React.PointerEvent>())
+  const gesture = useRef<{ id: LayerId; x: number; y: number; width: number; rotation: number; startX: number; startY: number; distance?: number; angle?: number } | null>(null)
 
   const journal = useMemo(() => {
     if (choice === 'preserve') return 'Lumen fand Wärme im alten Gemäuer. Wir ließen das Nest unberührt und öffneten nur den Weg zum Rad.'
@@ -46,56 +77,111 @@ export default function App() {
 
   const inspectHotspot = (id: HotspotId) => { setHotspot(id); setScreen('echo') }
   const reset = () => { setScreen('map'); setHotspot('window'); setChoice(null) }
-  const updateLayer = (id: LayerId, patch: Partial<LayerLayout>) => {
+  const persist = (next: Layouts) => localStorage.setItem('echo-old-mill-layout-v2', JSON.stringify(next))
+  const updateLayer = (id: LayerId, patch: Partial<LayerLayout>, addHistory = false) => {
     setLayouts(current => {
+      if (addHistory) setHistory(items => [...items.slice(-29), current])
       const next = { ...current, [id]: { ...current[id], ...patch } }
-      localStorage.setItem('echo-old-mill-layout', JSON.stringify(next))
+      persist(next)
       return next
     })
   }
-  const layerStyle = (id: LayerId) => ({
-    left: `${layouts[id].x}%`, top: `${layouts[id].y}%`, width: `${layouts[id].width}%`,
-    opacity: layouts[id].opacity, transform: `rotate(${layouts[id].rotation}deg)`,
-  })
+  const layerStyle = (id: LayerId) => {
+    const value = layouts[id]
+    return {
+      left: `${value.x}%`, top: `${value.y}%`, width: `${value.width}%`, opacity: value.visible ? value.opacity : 0,
+      transformOrigin: 'center center',
+      transform: `perspective(${value.perspective}px) rotateX(${value.rotateX}deg) rotateY(${value.rotateY}deg) rotateZ(${value.rotation}deg) skew(${value.skewX}deg, ${value.skewY}deg) scale(${value.scaleX}, ${value.scaleY})`,
+    }
+  }
   const copyLayout = async () => {
     await navigator.clipboard.writeText(JSON.stringify(layouts, null, 2))
     setCopied(true); window.setTimeout(() => setCopied(false), 1400)
   }
+  const undo = () => setHistory(items => {
+    if (!items.length) return items
+    const previous = items[items.length - 1]
+    setLayouts(previous); persist(previous)
+    return items.slice(0, -1)
+  })
+  const resetSelected = () => updateLayer(selectedLayer, defaultLayouts[selectedLayer], true)
+  const setNumeric = (key: NumericKey, raw: string) => {
+    const value = Number(raw)
+    if (!Number.isFinite(value)) return
+    const bounded = key === 'opacity' ? clamp(value, 0, 1) : key === 'scaleX' || key === 'scaleY' ? clamp(value, .1, 4) : key === 'perspective' ? clamp(value, 100, 3000) : value
+    updateLayer(selectedLayer, { [key]: bounded }, true)
+  }
+  const stepFor = (key: NumericKey) => key === 'opacity' ? .05 : key === 'rotation' || key === 'skewX' || key === 'skewY' || key === 'rotateX' || key === 'rotateY' ? 1 : key === 'scaleX' || key === 'scaleY' ? .05 : key === 'perspective' ? 50 : .5
+
+  const pointerDown = (event: React.PointerEvent<HTMLImageElement>, id: LayerId) => {
+    event.preventDefault()
+    setSelectedLayer(id)
+    event.currentTarget.setPointerCapture(event.pointerId)
+    pointers.current.set(event.pointerId, event)
+    const origin = layouts[id]
+    gesture.current = { id, x: origin.x, y: origin.y, width: origin.width, rotation: origin.rotation, startX: event.clientX, startY: event.clientY }
+    setHistory(items => [...items.slice(-29), layouts])
+  }
+  const pointerMove = (event: React.PointerEvent<HTMLImageElement>) => {
+    if (!gesture.current) return
+    pointers.current.set(event.pointerId, event)
+    const points = [...pointers.current.values()]
+    const scene = event.currentTarget.parentElement!.getBoundingClientRect()
+    const state = gesture.current
+    if (points.length >= 2) {
+      const [a, b] = points
+      if (!state.distance) {
+        state.distance = distanceBetween(a, b)
+        state.angle = angleBetween(a, b)
+        state.width = layouts[state.id].width
+        state.rotation = layouts[state.id].rotation
+        return
+      }
+      const ratio = distanceBetween(a, b) / state.distance
+      const rotationDelta = angleBetween(a, b) - (state.angle ?? 0)
+      updateLayer(state.id, { width: clamp(state.width * ratio, 2, 90), rotation: state.rotation + rotationDelta })
+    } else {
+      updateLayer(state.id, {
+        x: state.x + ((event.clientX - state.startX) / scene.width) * 100,
+        y: state.y + ((event.clientY - state.startY) / scene.height) * 100,
+      })
+    }
+  }
+  const pointerUp = (event: React.PointerEvent<HTMLImageElement>) => {
+    pointers.current.delete(event.pointerId)
+    if (pointers.current.size === 0) gesture.current = null
+    else if (gesture.current) {
+      const remaining = [...pointers.current.values()][0]
+      gesture.current.startX = remaining.clientX
+      gesture.current.startY = remaining.clientY
+      gesture.current.x = layouts[gesture.current.id].x
+      gesture.current.y = layouts[gesture.current.id].y
+      gesture.current.distance = undefined
+      gesture.current.angle = undefined
+    }
+  }
 
   if (editorMode) {
     const active = layouts[selectedLayer]
+    const renderControl = (key: NumericKey) => {
+      const step = stepFor(key)
+      const decimals = key === 'opacity' || key === 'scaleX' || key === 'scaleY' ? 2 : 1
+      return <div className="editor-control" key={key}><span>{key}</span><button onClick={() => updateLayer(selectedLayer, { [key]: active[key] - step }, true)}>−</button><input type="number" inputMode="decimal" step={step} value={Number(active[key].toFixed(decimals))} onChange={e => setNumeric(key, e.target.value)} /><button onClick={() => updateLayer(selectedLayer, { [key]: active[key] + step }, true)}>+</button></div>
+    }
     return (
       <main className="editor-shell">
         <section className="editor-scene" aria-label="Alte Mühle Sprite Editor">
           <img className="scene-background" src={oldMill.background} alt="Alte Mühle" />
-          {layerIds.map(id => (
-            <img key={id} src={oldMill.layers[id]} alt={id}
-              className={`editor-layer ${selectedLayer === id ? 'selected' : ''}`}
-              style={layerStyle(id)} onPointerDown={event => {
-                event.preventDefault(); setSelectedLayer(id)
-                const scene = event.currentTarget.parentElement!.getBoundingClientRect()
-                const startX = event.clientX, startY = event.clientY
-                const origin = layouts[id]
-                event.currentTarget.setPointerCapture(event.pointerId)
-                const move = (e: PointerEvent) => updateLayer(id, {
-                  x: origin.x + ((e.clientX - startX) / scene.width) * 100,
-                  y: origin.y + ((e.clientY - startY) / scene.height) * 100,
-                })
-                const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up) }
-                window.addEventListener('pointermove', move); window.addEventListener('pointerup', up)
-              }} />
-          ))}
+          {layerIds.map(id => <img key={id} src={oldMill.layers[id]} alt={id} className={`editor-layer ${selectedLayer === id ? 'selected' : ''} ${!layouts[id].visible ? 'hidden-layer' : ''}`} style={layerStyle(id)} onPointerDown={e => pointerDown(e, id)} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} />)}
         </section>
         <section className="editor-panel">
-          <div className="editor-title"><div><p className="eyebrow">Scene Editor</p><h1>Alte Mühle</h1></div><button onClick={copyLayout}>{copied ? 'Kopiert' : 'Layout kopieren'}</button></div>
+          <div className="editor-title"><div><p className="eyebrow">Scene Editor V2</p><h1>Alte Mühle</h1></div><button onClick={copyLayout}>{copied ? 'Kopiert' : 'Layout kopieren'}</button></div>
+          <div className="editor-toolbar"><button onClick={undo} disabled={!history.length}>↶ Undo</button><button onClick={resetSelected}>Layer zurücksetzen</button><button className={active.visible ? 'active' : ''} onClick={() => updateLayer(selectedLayer, { visible: !active.visible }, true)}>{active.visible ? 'Sichtbar' : 'Ausgeblendet'}</button></div>
           <div className="layer-tabs">{layerIds.map(id => <button key={id} className={id === selectedLayer ? 'active' : ''} onClick={() => setSelectedLayer(id)}>{id}</button>)}</div>
-          <div className="editor-controls">
-            {(['x','y','width','rotation','opacity'] as const).map(key => {
-              const step = key === 'opacity' ? .05 : key === 'rotation' ? 1 : .5
-              return <div className="editor-control" key={key}><span>{key}</span><button onClick={() => updateLayer(selectedLayer,{[key]: active[key]-step})}>−</button><output>{active[key].toFixed(key === 'opacity' ? 2 : 1)}</output><button onClick={() => updateLayer(selectedLayer,{[key]: active[key]+step})}>+</button></div>
-            })}
-          </div>
-          <p className="editor-help">Sprite antippen und direkt im Bild ziehen. Die Werte werden automatisch auf diesem Gerät gespeichert.</p>
+          <div className="editor-controls">{basicKeys.map(renderControl)}</div>
+          <button className="advanced-toggle" onClick={() => setAdvancedOpen(open => !open)}>{advancedOpen ? 'Erweiterte Transformationen schließen' : 'Erweiterte Transformationen'}</button>
+          {advancedOpen && <div className="editor-controls advanced-controls">{advancedKeys.map(renderControl)}</div>}
+          <p className="editor-help"><strong>Touch:</strong> 1 Finger verschiebt. 2 Finger skalieren und drehen. Alle Werte können direkt eingegeben werden. Scale X/Y streckt, Skew X/Y neigt und Rotate X/Y kippt das Sprite perspektivisch.</p>
         </section>
       </main>
     )
