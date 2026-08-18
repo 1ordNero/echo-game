@@ -4,8 +4,7 @@ import App from './App'
 import BetaMenu from './BetaMenu'
 import EditorHub from './EditorHub'
 import ForestGame from './ForestGame'
-import { oldMill } from './content/oldMill'
-import { forgottenForest } from './content/forgottenForest'
+import { locationList, locations } from './content/locationRegistry'
 import { preloadImages, preloadWhenIdle } from './game/assetPreload'
 import './styles/global.css'
 import './styles/editor.css'
@@ -34,16 +33,20 @@ const params = new URLSearchParams(window.location.search)
 const editor = params.get('editor') === '1'
 const forestGame = params.get('forest') === '1'
 
-// Make navigation feel immediate on mobile: backgrounds first, optional sprites during idle time.
+// Location registry owns loading policy so adding a new place does not require editing the bootstrap code.
 if (!editor) {
-  preloadImages(forestGame
-    ? [forgottenForest.background, forgottenForest.echoes.mossi]
-    : [oldMill.background, forgottenForest.background], 'high')
+  const activeLocation = forestGame ? locations['forgotten-forest'] : locations['old-mill']
+  const otherBackgrounds = locationList
+    .filter(location => location.id !== activeLocation.id)
+    .map(location => location.background)
+
+  preloadImages(activeLocation.preload.critical, 'high')
   preloadWhenIdle([
-    oldMill.lumen,
-    ...Object.values(oldMill.layers),
-    forgottenForest.echoes.mossi,
-    ...Object.values(forgottenForest.layers),
+    ...activeLocation.preload.idle,
+    ...otherBackgrounds,
+    ...locationList
+      .filter(location => location.id !== activeLocation.id)
+      .flatMap(location => location.preload.idle),
   ])
 }
 
