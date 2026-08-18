@@ -78,6 +78,9 @@ export function loadGame(): GameSave {
     const forgottenForest = { ...fresh.forgottenForest, ...(parsed.forgottenForest ?? {}) }
     const riverbank = { ...fresh.riverbank, ...(parsed.riverbank ?? {}) }
 
+    // Compatibility with beta.8 saves: the removed Dropi step now resumes at the Echo.
+    if (riverbank.state === 'DROPI_FOUND') riverbank.state = 'ECHO_REVEALED'
+
     if (oldMill.completedAt && !oldMill.followUpDueAt && !oldMill.followUpSeenAt) {
       oldMill.followUpDueAt = oldMill.completedAt + (oldMill.choice === 'repair' ? 2 * DAY : DAY)
     }
@@ -153,15 +156,16 @@ export function completeForgottenForest(save: GameSave, choice: ForestChoice): G
 }
 
 export function setRiverState(save: GameSave, state: RiverState): GameSave {
-  return { ...save, version: 4, riverbank: { ...save.riverbank, state, dropiVisited: save.riverbank.dropiVisited || state === 'DROPI_FOUND' || state === 'RESTORED' } }
+  return { ...save, version: 4, riverbank: { ...save.riverbank, state } }
 }
 
 export function completeRiverbank(save: GameSave): GameSave {
   const now = Date.now()
-  const body = 'Dropi folgte der schwachen Strömung unter dem Treibholz. Als die Blockade nachgab, begann der Fluss wieder zu ziehen. Zwischen nassen Steinen blieb ein altes Spiralzeichen zurück.'
+  const body = 'Das alte Spiralzeichen zeigte die Spur einer vergessenen Strömung. Als das Treibholz nachgab, fand das Wasser zurück in seinen alten Lauf.'
   const entryId = 'riverbank-restored'
-  const journal = save.journal.some(entry => entry.id === entryId)
-    ? save.journal
+  const existing = save.journal.find(entry => entry.id === entryId)
+  const journal = existing
+    ? save.journal.map(entry => entry.id === entryId ? { ...entry, body } : entry)
     : [{ id: entryId, title: 'Flussufer', body, createdAt: now }, ...save.journal]
 
   return {
@@ -169,8 +173,8 @@ export function completeRiverbank(save: GameSave): GameSave {
     version: 4,
     riverbank: {
       state: 'RESTORED',
-      tags: ['river_restored', 'memory_stone_revealed', 'dropi_used'],
-      dropiVisited: true,
+      tags: ['river_restored', 'memory_stone_revealed'],
+      dropiVisited: false,
       completedAt: now,
     },
     journal,
