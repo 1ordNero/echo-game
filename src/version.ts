@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.3.0-beta.1'
+export const APP_VERSION = '0.3.0-beta.2'
 
 export type ChangelogEntry = {
   version: string
@@ -8,6 +8,16 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.3.0-beta.2',
+    date: '2026-08-18',
+    title: 'Sprite-Ausrichtung korrigiert',
+    changes: [
+      'Location-Szenen wieder auf das native 3:2-Koordinatensystem des Scene Editors gesetzt.',
+      'Sprite- und Hotspot-Positionen stimmen dadurch wieder mit den gespeicherten Editor-Werten überein.',
+      'Kompakte Header-UI bleibt erhalten.',
+    ],
+  },
   {
     version: '0.3.0-beta.1',
     date: '2026-08-18',
