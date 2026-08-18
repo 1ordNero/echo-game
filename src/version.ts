@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.3.0-beta.3'
+export const APP_VERSION = '0.3.0-beta.4'
 
 export type ChangelogEntry = {
   version: string
@@ -8,6 +8,17 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.3.0-beta.4',
+    date: '2026-08-18',
+    title: 'GDD UI alignment pass',
+    changes: [
+      'Location title and status moved into a dedicated top band so they no longer cover the hero illustration.',
+      'Location artwork starts lower while keeping the exact 3:2 Scene Editor coordinate system.',
+      'Typography, result sheets and choice cards made more compact to keep one dominant action per screen.',
+      'World map adjusted so the map itself occupies more of the screen.',
+    ],
+  },
   {
     version: '0.3.0-beta.3',
     date: '2026-08-18',
