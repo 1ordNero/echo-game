@@ -1,5 +1,5 @@
 export type RiverLayerId = 'dam' | 'waterSlow' | 'water' | 'streambed' | 'echoStone' | 'echo' | 'dropi' | 'dropiRipple'
-export type RiverPreviewState = 'undiscovered' | 'discovered' | 'investigating' | 'echo_revealed' | 'dropi_appears' | 'restored'
+export type RiverPreviewState = 'undiscovered' | 'discovered' | 'investigating' | 'echo_revealed' | 'restored'
 
 export type LayerLayout = {
   x: number
@@ -20,7 +20,7 @@ export type LayerLayout = {
 export type RiverLayouts = Record<RiverLayerId, LayerLayout>
 
 export const riverLayerIds: RiverLayerId[] = ['dam', 'waterSlow', 'water', 'streambed', 'echoStone', 'echo', 'dropi', 'dropiRipple']
-export const riverPreviewStates: RiverPreviewState[] = ['undiscovered', 'discovered', 'investigating', 'echo_revealed', 'dropi_appears', 'restored']
+export const riverPreviewStates: RiverPreviewState[] = ['undiscovered', 'discovered', 'investigating', 'echo_revealed', 'restored']
 
 const base = (patch: Partial<LayerLayout> = {}): LayerLayout => ({
   x: 0, y: 0, width: 30, rotation: 0, opacity: 1,
@@ -68,9 +68,11 @@ export function riverLayerStyle(layout: LayerLayout): React.CSSProperties {
 export const riverIsVfx = (id: RiverLayerId) => id === 'echo' || id === 'dropiRipple'
 
 export function riverVisibleInState(id: RiverLayerId, state: RiverPreviewState) {
-  if (state === 'undiscovered' || state === 'discovered') return id === 'dam' || id === 'waterSlow'
-  if (state === 'investigating') return id === 'dam' || id === 'waterSlow' || id === 'echoStone'
-  if (state === 'echo_revealed') return id === 'dam' || id === 'waterSlow' || id === 'echoStone' || id === 'echo'
-  if (state === 'dropi_appears') return id === 'dam' || id === 'waterSlow' || id === 'echoStone' || id === 'echo' || id === 'dropi' || id === 'dropiRipple'
-  return id === 'water' || id === 'streambed' || id === 'echoStone' || id === 'dropi'
+  // Blocked river: only the physical blockage and exposed streambed are visible.
+  if (state === 'undiscovered' || state === 'discovered') return id === 'dam' || id === 'streambed'
+  // The stone sequence builds on the same blocked state.
+  if (state === 'investigating') return id === 'dam' || id === 'streambed' || id === 'echoStone'
+  if (state === 'echo_revealed') return id === 'dam' || id === 'streambed' || id === 'echoStone' || id === 'echo'
+  // Once the blockage is released, the slow current replaces dam + streambed.
+  return id === 'waterSlow' || id === 'echoStone'
 }
