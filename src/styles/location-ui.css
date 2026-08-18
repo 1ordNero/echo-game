@@ -1,12 +1,24 @@
 .forest-scene{margin-top:0!important}
 
-/* Shared location hero. Keep the artwork on its native 3:2 coordinate system so editor positions remain exact. */
+/* Shared location hero. The scene canvas itself defines the 3:2 coordinate system used by the editors. */
 .location-screen .mill-scene{
+  position:relative;
   width:100%;
   height:auto;
   aspect-ratio:3/2;
+  overflow:hidden;
+  flex:none;
 }
-.location-screen .scene-background{object-fit:cover;object-position:center center}
+/* Keep the background out of normal flow so its intrinsic dimensions can never stretch the canvas. */
+.location-screen .mill-scene>.scene-background{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center center;
+  display:block;
+}
 .location-screen .scene-shade{
   background:linear-gradient(180deg,rgba(4,8,6,.72) 0%,rgba(4,8,6,.38) 17%,rgba(4,8,6,.08) 34%,transparent 53%,rgba(4,8,6,.1) 100%);
 }
