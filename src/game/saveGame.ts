@@ -1,5 +1,7 @@
 export type MillChoice = 'preserve' | 'repair'
 export type MillState = 'ABANDONED' | 'DISCOVERED' | 'REPAIRED'
+export type ForestChoice = 'awaken-roots' | 'reveal-stones'
+export type ForestState = 'STILL' | 'AWAKENING' | 'CHANGED'
 
 export type JournalEntry = {
   id: string
@@ -9,7 +11,7 @@ export type JournalEntry = {
 }
 
 export type GameSave = {
-  version: 2
+  version: 3
   oldMill: {
     state: MillState
     choice: MillChoice | null
@@ -19,6 +21,13 @@ export type GameSave = {
     followUpDueAt: number | null
     followUpSeenAt: number | null
   }
+  forgottenForest: {
+    state: ForestState
+    choice: ForestChoice | null
+    tags: string[]
+    mossiVisited: boolean
+    completedAt: number | null
+  }
   journal: JournalEntry[]
 }
 
@@ -26,7 +35,7 @@ const SAVE_KEY = 'echo-save-v1'
 const DAY = 24 * 60 * 60 * 1000
 
 export const createNewGame = (): GameSave => ({
-  version: 2,
+  version: 3,
   oldMill: {
     state: 'ABANDONED',
     choice: null,
@@ -35,6 +44,13 @@ export const createNewGame = (): GameSave => ({
     completedAt: null,
     followUpDueAt: null,
     followUpSeenAt: null,
+  },
+  forgottenForest: {
+    state: 'STILL',
+    choice: null,
+    tags: [],
+    mossiVisited: false,
+    completedAt: null,
   },
   journal: [],
 })
@@ -46,8 +62,8 @@ export function loadGame(): GameSave {
     const parsed = JSON.parse(raw) as Partial<GameSave>
     const fresh = createNewGame()
     const oldMill = { ...fresh.oldMill, ...(parsed.oldMill ?? {}) }
+    const forgottenForest = { ...fresh.forgottenForest, ...(parsed.forgottenForest ?? {}) }
 
-    // Migration from Phase-2 v1 saves: schedule a follow-up for an already completed mill.
     if (oldMill.completedAt && !oldMill.followUpDueAt && !oldMill.followUpSeenAt) {
       oldMill.followUpDueAt = oldMill.completedAt + (oldMill.choice === 'repair' ? 2 * DAY : DAY)
     }
@@ -55,8 +71,9 @@ export function loadGame(): GameSave {
     return {
       ...fresh,
       ...parsed,
-      version: 2,
+      version: 3,
       oldMill,
+      forgottenForest,
       journal: Array.isArray(parsed.journal) ? parsed.journal : [],
     }
   } catch {
@@ -81,7 +98,7 @@ export function completeOldMill(save: GameSave, choice: MillChoice): GameSave {
 
   return {
     ...save,
-    version: 2,
+    version: 3,
     oldMill: {
       state: choice === 'repair' ? 'REPAIRED' : 'DISCOVERED',
       choice,
@@ -95,13 +112,33 @@ export function completeOldMill(save: GameSave, choice: MillChoice): GameSave {
   }
 }
 
+export function completeForgottenForest(save: GameSave, choice: ForestChoice): GameSave {
+  const now = Date.now()
+  const roots = choice === 'awaken-roots'
+  const body = roots
+    ? 'Mossi lauschte tief unter dem Waldboden. Die alten Wurzeln lösten sich aus ihrer starren Ruhe und frisches Moos erschien zwischen ihnen.'
+    : 'Mossi schob Moos und Wurzeln behutsam zur Seite. Unter dem Bewuchs kamen drei alte Steine mit fast vergessenen Kreiszeichen zum Vorschein.'
+  const entryId = `forgotten-forest-${choice}`
+  const journal = save.journal.some(entry => entry.id === entryId)
+    ? save.journal
+    : [{ id: entryId, title: 'Vergessener Wald', body, createdAt: now }, ...save.journal]
+
+  return {
+    ...save,
+    version: 3,
+    forgottenForest: {
+      state: roots ? 'AWAKENING' : 'CHANGED',
+      choice,
+      tags: roots ? ['roots_awake', 'mossi_used'] : ['memory_stones_revealed', 'mossi_used'],
+      mossiVisited: true,
+      completedAt: now,
+    },
+    journal,
+  }
+}
+
 export function isOldMillFollowUpReady(save: GameSave, now = Date.now()) {
-  return Boolean(
-    save.oldMill.choice &&
-    save.oldMill.followUpDueAt &&
-    !save.oldMill.followUpSeenAt &&
-    now >= save.oldMill.followUpDueAt,
-  )
+  return Boolean(save.oldMill.choice && save.oldMill.followUpDueAt && !save.oldMill.followUpSeenAt && now >= save.oldMill.followUpDueAt)
 }
 
 export function timeUntilOldMillFollowUp(save: GameSave, now = Date.now()) {
@@ -111,10 +148,7 @@ export function timeUntilOldMillFollowUp(save: GameSave, now = Date.now()) {
 
 export function accelerateOldMillFollowUp(save: GameSave): GameSave {
   if (!save.oldMill.choice || save.oldMill.followUpSeenAt) return save
-  return {
-    ...save,
-    oldMill: { ...save.oldMill, followUpDueAt: Date.now() - 1 },
-  }
+  return { ...save, oldMill: { ...save.oldMill, followUpDueAt: Date.now() - 1 } }
 }
 
 export function resolveOldMillFollowUp(save: GameSave): GameSave {
