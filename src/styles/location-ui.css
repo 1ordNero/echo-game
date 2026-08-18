@@ -1,9 +1,10 @@
 .forest-scene{margin-top:0!important}
 
-/* Shared location hero: the scene is primary, UI stays compact. */
+/* Shared location hero. Keep the artwork on its native 3:2 coordinate system so editor positions remain exact. */
 .location-screen .mill-scene{
-  height:clamp(360px,46svh,560px);
-  aspect-ratio:auto;
+  width:100%;
+  height:auto;
+  aspect-ratio:3/2;
 }
 .location-screen .scene-background{object-fit:cover;object-position:center center}
 .location-screen .scene-shade{
@@ -11,7 +12,7 @@
 }
 .location-header{
   gap:10px;
-  padding:12px 14px 54px;
+  padding:12px 14px 46px;
   background:linear-gradient(180deg,rgba(7,12,10,.42),rgba(7,12,10,.14) 60%,transparent);
 }
 .location-header .icon-button{
@@ -65,16 +66,14 @@
 .result-sheet .result-actions{margin-top:13px}
 .result-sheet .primary-button,.result-sheet .secondary-button{min-height:44px}
 
-/* Keep interactive markers visually below the compact location identity block. */
 .location-screen .hotspot{transform:translateZ(0)}
 
 @media(max-width:390px){
-  .location-screen .mill-scene{height:clamp(345px,45svh,500px)}
-  .location-header{padding-left:12px;padding-right:12px}
+  .location-header{padding-left:12px;padding-right:12px;padding-bottom:40px}
   .location-header h2{font-size:1.55rem}
   .location-header p:last-child{font-size:.65rem}
 }
 
 @media(min-width:760px){
-  .location-screen .mill-scene{height:min(52vh,620px)}
+  .location-screen .mill-scene{width:min(100%,720px);margin-inline:auto}
 }
