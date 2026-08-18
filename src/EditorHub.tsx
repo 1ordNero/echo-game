@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import App from './App'
 import ForestEditor from './ForestEditor'
+import MillEditor from './MillEditor'
 
 type SceneId = 'old-mill' | 'forgotten-forest'
 
@@ -28,6 +28,6 @@ export default function EditorHub() {
         <option value="forgotten-forest">Vergessener Wald</option>
       </select>
     </div>
-    {scene === 'forgotten-forest' ? <ForestEditor /> : <App />}
+    {scene === 'forgotten-forest' ? <ForestEditor /> : <MillEditor />}
   </div>
 }
