@@ -1,62 +1,90 @@
 .forest-scene{margin-top:0!important}
 
-/* Shared location hero. The scene canvas itself defines the 3:2 coordinate system used by the editors. */
+/* GDD location template: one clear question, world first, UI second. */
+.location-screen{
+  --location-chrome:112px;
+  padding-top:var(--location-chrome);
+  background:linear-gradient(180deg,#111915 0,var(--location-chrome),#0b100e var(--location-chrome));
+}
+
+/* Keep the artwork on its native 3:2 coordinate system so editor positions remain exact. */
 .location-screen .mill-scene{
   position:relative;
   width:100%;
   height:auto;
   aspect-ratio:3/2;
-  overflow:hidden;
-  flex:none;
+  overflow:visible;
+  background:#17201a;
 }
-/* Keep the background out of normal flow so its intrinsic dimensions can never stretch the canvas. */
-.location-screen .mill-scene>.scene-background{
+.location-screen .scene-background{
   position:absolute;
   inset:0;
   width:100%;
   height:100%;
+  display:block;
   object-fit:cover;
   object-position:center center;
-  display:block;
+  overflow:hidden;
 }
 .location-screen .scene-shade{
-  background:linear-gradient(180deg,rgba(4,8,6,.72) 0%,rgba(4,8,6,.38) 17%,rgba(4,8,6,.08) 34%,transparent 53%,rgba(4,8,6,.1) 100%);
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg,rgba(4,8,6,.18) 0%,rgba(4,8,6,.05) 22%,transparent 48%,rgba(4,8,6,.1) 100%);
+  pointer-events:none;
 }
+
+/* Location identity lives in its own quiet top band instead of covering the illustration. */
 .location-header{
-  gap:10px;
-  padding:12px 14px 46px;
-  background:linear-gradient(180deg,rgba(7,12,10,.42),rgba(7,12,10,.14) 60%,transparent);
+  position:absolute;
+  left:0;
+  right:0;
+  top:calc(-1 * var(--location-chrome));
+  height:var(--location-chrome);
+  z-index:12;
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:15px 56px 13px 16px;
+  background:linear-gradient(180deg,rgba(15,23,19,.99),rgba(15,23,19,.94));
+  border-bottom:1px solid rgba(255,255,255,.06);
 }
+.location-header>div{flex:1;min-width:0}
 .location-header .icon-button{
   width:36px;
   height:36px;
-  margin-top:1px;
+  margin:0;
   font-size:1rem;
+  background:rgba(255,255,255,.035);
 }
 .location-header .eyebrow{
-  margin-bottom:4px;
-  font-size:.58rem;
+  margin:0 0 3px;
+  font-size:.57rem;
   letter-spacing:.16em;
 }
 .location-header h2{
-  max-width:14ch;
-  font-size:clamp(1.55rem,6.2vw,2.2rem);
-  line-height:.96;
+  max-width:18ch;
+  margin:0;
+  font-size:clamp(1.42rem,5.6vw,1.95rem);
+  font-weight:500;
+  line-height:1;
   text-wrap:balance;
+  text-shadow:none;
 }
 .location-header p:last-child{
   display:-webkit-box;
-  max-width:29ch;
-  margin-top:6px;
+  max-width:34ch;
+  margin:5px 0 0;
   overflow:hidden;
-  font-size:.68rem;
-  line-height:1.35;
-  opacity:.74;
+  font-family:system-ui,sans-serif;
+  font-size:.64rem;
+  line-height:1.32;
+  opacity:.66;
+  text-shadow:none;
   -webkit-box-orient:vertical;
   -webkit-line-clamp:2;
 }
 
-/* Bottom sheets overlap the artwork only slightly and use less vertical space. */
+/* Bottom sheets overlap the artwork only slightly and keep a single dominant action. */
 .story-card,.bottom-sheet{
   margin:-14px 10px 0;
   padding:16px 18px 20px;
@@ -71,21 +99,36 @@
 .persistent-actions>:nth-child(n+2){display:none!important}
 .persistent-actions .secondary-button{min-height:44px}
 
-/* Results may be richer than the passive state, but should still leave the scene visible. */
-.result-sheet h3{margin-bottom:10px;font-size:1.2rem;line-height:1.15}
+/* Consequences: reaction first, text second, max two meaningful choices. */
+.result-sheet h3{margin-bottom:10px;font-size:1.16rem;line-height:1.16}
 .result-sheet .journal-note{margin-top:12px;padding:12px 14px}
-.result-sheet .journal-note p{font-size:.88rem;line-height:1.42}
+.result-sheet .journal-note p{font-size:.86rem;line-height:1.42}
 .result-sheet .result-actions{margin-top:13px}
 .result-sheet .primary-button,.result-sheet .secondary-button{min-height:44px}
+.bottom-sheet h3{font-size:1.2rem}
+.choice-grid button{min-height:60px;padding:12px 14px}
 
+/* Hotspots remain part of the illustration and never compete with the title. */
 .location-screen .hotspot{transform:translateZ(0)}
 
+/* World map: keep the map itself dominant as specified in the GDD. */
+.map-header{padding-top:18px}
+.map-header h1{font-size:clamp(2.25rem,10.5vw,4rem);line-height:.94}
+.map-intro{margin-top:12px;font-size:.76rem;line-height:1.45}
+.map-stage{min-height:60vh;margin-top:0}
+
 @media(max-width:390px){
-  .location-header{padding-left:12px;padding-right:12px;padding-bottom:40px}
-  .location-header h2{font-size:1.55rem}
-  .location-header p:last-child{font-size:.65rem}
+  .location-screen{--location-chrome:104px}
+  .location-header{padding-left:12px;padding-right:52px;gap:9px}
+  .location-header .icon-button{width:34px;height:34px}
+  .location-header h2{font-size:1.35rem}
+  .location-header p:last-child{font-size:.61rem;max-width:30ch}
+  .story-card,.bottom-sheet{margin-left:8px;margin-right:8px;padding-left:16px;padding-right:16px}
+  .map-header h1{font-size:2.35rem}
 }
 
 @media(min-width:760px){
+  .location-screen{--location-chrome:118px}
   .location-screen .mill-scene{width:min(100%,720px);margin-inline:auto}
+  .location-header{padding-left:20px;padding-right:64px}
 }
