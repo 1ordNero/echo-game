@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.3.0-beta.7'
+export const APP_VERSION = '0.3.0-beta.8'
 
 export type ChangelogEntry = {
   version: string
@@ -8,6 +8,19 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.3.0-beta.8',
+    date: '2026-08-18',
+    title: 'Flussufer playable slice',
+    changes: [
+      'Flussufer als dritte spielbare Location registriert und auf der Weltkarte freigeschaltet.',
+      'Persistente Riverbank-State-Machine von blockierter Strömung bis zur Wiederherstellung ergänzt.',
+      'Dropi, Memory Stone, Echo und Wasserzustände in den gemeinsamen LocationScene-Renderer integriert.',
+      'Scene Editor für das Flussufer um Vorschau-Zustände für Entdeckung, Echo, Dropi und Wiederherstellung erweitert.',
+      'Finale Riverbank-Sprite-Positionen als gemeinsame Standardwerte für Spiel und Editor übernommen.',
+      'Flussufer-Erinnerung wird nach Abschluss im Tagebuch gespeichert.',
+    ],
+  },
   {
     version: '0.3.0-beta.7',
     date: '2026-08-18',
