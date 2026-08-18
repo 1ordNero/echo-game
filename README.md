@@ -48,4 +48,4 @@ World Map → Old Mill → Hotspot → Echo selection → Reaction → Choice �
 
 ## Status
 
-Phase 0 in progress.
+Phase 0 in progress. GitHub Pages deployment trigger verified on main.
