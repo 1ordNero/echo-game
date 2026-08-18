@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.3.0-beta.4'
+export const APP_VERSION = '0.3.0-beta.5'
 
 export type ChangelogEntry = {
   version: string
@@ -8,6 +8,16 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.3.0-beta.5',
+    date: '2026-08-18',
+    title: 'Asset loading & shared location scene',
+    changes: [
+      'Location backgrounds are preloaded with high priority and optional sprites are loaded during idle time.',
+      'Forest rendering moved onto a reusable LocationScene canvas for future locations.',
+      'Shared scene canvas handles header, background, layers and hotspots with the same 3:2 coordinate system.',
+    ],
+  },
   {
     version: '0.3.0-beta.4',
     date: '2026-08-18',
