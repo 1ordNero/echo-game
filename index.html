@@ -9,5 +9,21 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      const enableForestNode = () => {
+        const node = document.querySelector('.forest-node')
+        if (!node || node.dataset.forestEnabled === '1') return
+        node.disabled = false
+        node.dataset.forestEnabled = '1'
+        node.classList.add('active')
+        const dot = node.querySelector('.node-dot')
+        if (dot) dot.classList.remove('muted')
+        node.addEventListener('click', () => {
+          window.location.href = `${window.location.pathname}?forest=1`
+        })
+      }
+      new MutationObserver(enableForestNode).observe(document.getElementById('root'), { childList: true, subtree: true })
+      enableForestNode()
+    </script>
   </body>
 </html>
