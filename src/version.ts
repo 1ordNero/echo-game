@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.3.0-beta.5'
+export const APP_VERSION = '0.3.0-beta.6'
 
 export type ChangelogEntry = {
   version: string
@@ -8,6 +8,17 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.3.0-beta.6',
+    date: '2026-08-18',
+    title: 'Location registry foundation',
+    changes: [
+      'Locations are now registered centrally with route, editor scene and preload policy metadata.',
+      'Asset preloading is driven by the location registry instead of hard-coded bootstrap lists.',
+      'Shared LocationScene header integration fixed so the common GDD UI styling is preserved.',
+      'Foundation prepared for moving the Alte Mühle and future locations onto the same data-driven runtime.',
+    ],
+  },
   {
     version: '0.3.0-beta.5',
     date: '2026-08-18',
